@@ -55,6 +55,20 @@ class AnnotationEngine:
         except Exception:
             self.detector = None
 
+    def reload_model(self):
+        model_path = os.path.join(BASE_DIR, "models", "sentinel_indian_traffic_best.pt")
+        if not os.path.exists(model_path):
+            model_path = os.path.join(BASE_DIR, "models", "indian_traffic_live_10class_best.pt")
+        if not os.path.exists(model_path):
+            model_path = "yolov8n.pt"
+        try:
+            self.detector = YOLO(model_path)
+            print(f"🔄 AnnotationEngine successfully reloaded model: {model_path} ({len(self.detector.names)} classes)")
+            return True
+        except Exception as e:
+            print("Failed to reload model:", e)
+            return False
+
     def _ensure_dataset_dirs(self):
         for split in ["train", "val"]:
             os.makedirs(os.path.join(DATASET_DIR, "images", split), exist_ok=True)
@@ -151,7 +165,10 @@ class AnnotationEngine:
 
                 # Map model classes into our 6-class taxonomy: car (0), auto (1), bus (2), truck (3), two_wheeler (4), pedestrian (5)
                 cls_id = 0  # default car
-                if "auto" in name or "rickshaw" in name:
+                lower_classes = [c.lower() for c in CLASSES]
+                if name in lower_classes:
+                    cls_id = lower_classes.index(name)
+                elif "auto" in name or "rickshaw" in name:
                     cls_id = 1
                 elif "bus" in name:
                     cls_id = 2

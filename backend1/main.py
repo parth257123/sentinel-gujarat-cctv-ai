@@ -468,6 +468,12 @@ def get_annotation_stats():
     """Returns total annotated frames, train/val split, and class counts."""
     return annotation_engine.get_dataset_stats()
 
+@app.post("/api/annotation/reload_model")
+def reload_annotation_model():
+    """Hot-reloads newly trained model weights into the active AI Pre-Annotate assistant."""
+    success = annotation_engine.reload_model()
+    return {"status": "success" if success else "failed", "reloaded": success}
+
 # ─── High-Throughput Cluster Scaling & Active Learning APIs ─────────────
 
 @app.get("/api/scale/telemetry")
