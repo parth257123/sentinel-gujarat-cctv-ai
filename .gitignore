@@ -88,6 +88,7 @@ backend1/runs/
 *.pt
 !backend1/models/sentinel_indian_traffic_best.pt
 !backend1/models/indian_plate_best.pt
+!GUJARAT_TRAFFIC_AI_MODEL_V2.pt
 
 # Local IDE Cache
 .vscode/
