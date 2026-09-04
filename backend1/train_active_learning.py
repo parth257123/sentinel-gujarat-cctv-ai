@@ -23,10 +23,12 @@ def train_active_learning():
     print(f"📁 Dataset: {DATA_YAML}")
     print(f"💾 Checkpoints: {RUNS_DIR}\n")
 
-    # Load base architecture (YOLOv11 Small)
-    base_model_path = os.path.join(os.path.dirname(BASE_DIR), "yolo11s.pt")
+    # Load previous best model checkpoint (continuous active learning)
+    base_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best.pt")
     if not os.path.exists(base_model_path):
-        base_model_path = "yolo11s.pt"
+        base_model_path = os.path.join(os.path.dirname(BASE_DIR), "yolo11s.pt")
+        if not os.path.exists(base_model_path):
+            base_model_path = "yolo11s.pt"
 
     print(f"📦 Loading base model: {base_model_path}")
     model = YOLO(base_model_path)
@@ -41,7 +43,7 @@ def train_active_learning():
         device=device,
         workers=2,
         optimizer="AdamW",
-        lr0=0.002,
+        lr0=0.0015,
         lrf=0.01,
         weight_decay=0.0005,
         warmup_epochs=2,
@@ -49,7 +51,7 @@ def train_active_learning():
         cls=1.5,
         dfl=1.5,
         project=RUNS_DIR,
-        name="gujarat_active_v2",
+        name="gujarat_active_v3",
         exist_ok=True,
         verbose=True
     )
@@ -58,10 +60,11 @@ def train_active_learning():
     print(f"\n⏱️ Training finished in {elapsed:.1f} seconds ({elapsed/60:.1f} minutes)!")
 
     # Locate best weights
-    best_weights = os.path.join(RUNS_DIR, "gujarat_active_v2", "weights", "best.pt")
+    best_weights = os.path.join(RUNS_DIR, "gujarat_active_v3", "weights", "best.pt")
     if os.path.exists(best_weights):
         target_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best.pt")
-        backup_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best_v1.pt")
+        backup_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best_v2.pt")
+        root_export_path = os.path.join(os.path.dirname(BASE_DIR), "GUJARAT_TRAFFIC_AI_MODEL_V2.pt")
 
         if os.path.exists(target_model_path):
             shutil.copy(target_model_path, backup_model_path)
@@ -69,11 +72,13 @@ def train_active_learning():
 
         # Deploy newly fine-tuned weights
         shutil.copy(best_weights, target_model_path)
+        shutil.copy(best_weights, root_export_path)
         size_mb = os.path.getsize(target_model_path) / (1024 * 1024)
         print("=" * 60)
         print("🎉 SUCCESS! NEW GUJARAT TRAFFIC WEIGHTS DEPLOYED!")
         print("=" * 60)
         print(f"✅ Deployed: {target_model_path} ({size_mb:.1f} MB)")
+        print(f"✅ Exported: {root_export_path}")
 
         # Hot reload into active FastAPI backend
         try:
