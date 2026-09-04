@@ -7,13 +7,12 @@ import {
 const API_BASE = 'http://localhost:8000';
 
 const CLASSES = [
-  { id: 0, name: 'auto_rickshaw', label: 'Auto-Rickshaw', key: '1', color: '#f59e0b' },
-  { id: 1, name: 'motorcycle', label: 'Motorcycle', key: '2', color: '#3b82f6' },
-  { id: 2, name: 'scooter', label: 'Scooter', key: '3', color: '#06b6d4' },
-  { id: 3, name: 'car', label: 'Car', key: '4', color: '#10b981' },
-  { id: 4, name: 'bus', label: 'Bus', key: '5', color: '#8b5cf6' },
-  { id: 5, name: 'truck', label: 'Truck', key: '6', color: '#ef4444' },
-  { id: 6, name: 'license_plate', label: 'License Plate', key: '7', color: '#ec4899' },
+  { id: 0, name: 'car', label: 'Car', key: '1', color: '#10b981' },
+  { id: 1, name: 'auto', label: 'Auto', key: '2', color: '#f59e0b' },
+  { id: 2, name: 'bus', label: 'Bus', key: '3', color: '#8b5cf6' },
+  { id: 3, name: 'truck', label: 'Truck', key: '4', color: '#ef4444' },
+  { id: 4, name: 'two_wheeler', label: 'Two Wheeler', key: '5', color: '#06b6d4' },
+  { id: 5, name: 'pedestrian', label: 'Pedestrian', key: '6', color: '#ec4899' },
 ];
 
 export function AnnotationStudioPage() {
@@ -21,7 +20,7 @@ export function AnnotationStudioPage() {
   const [selectedFrameIdx, setSelectedFrameIdx] = useState(0);
   const [boxes, setBoxes] = useState([]);
   const [selectedBoxIdx, setSelectedBoxIdx] = useState(null);
-  const [activeClassId, setActiveClassId] = useState(3); // Default 'car'
+  const [activeClassId, setActiveClassId] = useState(0); // Default 'car'
   const [split, setSplit] = useState('train');
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, annotated
@@ -117,7 +116,7 @@ export function AnnotationStudioPage() {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
       const num = parseInt(e.key);
-      if (num >= 1 && num <= 7) {
+      if (num >= 1 && num <= CLASSES.length) {
         setActiveClassId(num - 1);
         if (selectedBoxIdx !== null) {
           setBoxes(prev => prev.map((b, i) => i === selectedBoxIdx ? {

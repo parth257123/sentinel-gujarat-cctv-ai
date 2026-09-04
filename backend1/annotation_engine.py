@@ -18,25 +18,23 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRAMES_DIR = os.path.join(BASE_DIR, "harvested_cctv_frames")
 DATASET_DIR = os.path.join(BASE_DIR, "datasets", "manual_annotated_gujarat")
 
-# Standardized 7-Class Indian Traffic Taxonomy
+# Standardized 6-Class Indian Traffic & Pedestrian Taxonomy
 CLASSES = [
-    "auto_rickshaw",   # 0
-    "motorcycle",      # 1
-    "scooter",         # 2
-    "car",             # 3
-    "bus",             # 4
-    "truck",           # 5
-    "license_plate"    # 6
+    "car",             # 0
+    "auto",            # 1
+    "bus",             # 2
+    "truck",           # 3
+    "two_wheeler",     # 4
+    "pedestrian"       # 5
 ]
 
 CLASS_COLORS = {
-    0: "#f59e0b",  # Amber for Auto-Rickshaw
-    1: "#3b82f6",  # Blue for Motorcycle
-    2: "#06b6d4",  # Cyan for Scooter
-    3: "#10b981",  # Emerald for Car
-    4: "#8b5cf6",  # Purple for Bus
-    5: "#ef4444",  # Red for Truck
-    6: "#ec4899",  # Pink for License Plate
+    0: "#10b981",  # Emerald for Car
+    1: "#f59e0b",  # Amber for Auto
+    2: "#8b5cf6",  # Purple for Bus
+    3: "#ef4444",  # Red for Truck
+    4: "#06b6d4",  # Cyan for Two Wheeler
+    5: "#ec4899",  # Pink for Pedestrian
 }
 
 class AnnotationEngine:
@@ -143,20 +141,20 @@ class AnnotationEngine:
                 name = str(self.detector.names.get(raw_cls, "")).lower()
                 conf_val = float(box.conf[0])
 
-                # Map model classes into our 7-class taxonomy
-                cls_id = 3  # default car
+                # Map model classes into our 6-class taxonomy: car (0), auto (1), bus (2), truck (3), two_wheeler (4), pedestrian (5)
+                cls_id = 0  # default car
                 if "auto" in name or "rickshaw" in name:
-                    cls_id = 0
-                elif "motorcycle" in name or "bike" in name:
                     cls_id = 1
-                elif "scooter" in name:
-                    cls_id = 2
                 elif "bus" in name:
+                    cls_id = 2
+                elif "truck" in name or "heavy" in name or "lorry" in name:
+                    cls_id = 3
+                elif "motorcycle" in name or "bike" in name or "scooter" in name or "bicycle" in name or "two" in name:
                     cls_id = 4
-                elif "truck" in name or "heavy" in name:
+                elif "person" in name or "pedestrian" in name or "human" in name or "walk" in name:
                     cls_id = 5
-                elif "plate" in name or "license" in name:
-                    cls_id = 6
+                elif "car" in name or "van" in name or "suv" in name or "vehicle" in name:
+                    cls_id = 0
 
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 bw_px = x2 - x1
