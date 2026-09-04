@@ -268,4 +268,73 @@ class AnnotationEngine:
             "dataset_dir": DATASET_DIR
         }
 
+    def delete_frame(self, full_path, base_id=None):
+        """Permanently deletes an image frame from disk and removes its labels if present."""
+        deleted = False
+        if os.path.exists(full_path):
+            try:
+                os.remove(full_path)
+                deleted = True
+            except Exception as e:
+                print(f"Error removing {full_path}: {e}")
+
+        # Also remove from manual dataset if it was saved
+        if base_id:
+            for split in ["train", "val"]:
+                lbl = os.path.join(DATASET_DIR, "labels", split, f"{base_id}.txt")
+                if os.path.exists(lbl):
+                    try:
+                        os.remove(lbl)
+                    except Exception:
+                        pass
+                img = os.path.join(DATASET_DIR, "images", split, f"{base_id}.jpg")
+                if os.path.exists(img):
+                    try:
+                        os.remove(img)
+                    except Exception:
+                        pass
+
+        return {"status": "success" if deleted else "failed", "deleted": deleted}
+
+    def purge_corrupted_frames(self):
+        """Scans FRAMES_DIR and removes frames with severe decoder drop / vertical stripes / blank gray."""
+        all_frames = glob.glob(os.path.join(FRAMES_DIR, "**", "*.jpg"), recursive=True)
+        purged = 0
+        purged_files = []
+        import numpy as np
+
+        for fp in all_frames:
+            try:
+                sz = os.path.getsize(fp)
+                if sz < 55000:
+                    os.remove(fp)
+                    purged += 1
+                    purged_files.append(os.path.basename(fp))
+                    continue
+
+                img = cv2.imread(fp)
+                if img is None:
+                    os.remove(fp)
+                    purged += 1
+                    purged_files.append(os.path.basename(fp))
+                    continue
+
+                small = cv2.resize(img, (160, 90))
+                gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
+                col_diff = np.mean(np.abs(np.diff(gray, axis=0)))
+                row_diff = np.mean(np.abs(np.diff(gray, axis=1)))
+                ratio = col_diff / (row_diff + 1e-5)
+                std = np.std(gray)
+
+                # Striped decoder artifact or solid flat empty/gray
+                if (ratio < 0.28 and row_diff > 30) or std < 15:
+                    os.remove(fp)
+                    purged += 1
+                    purged_files.append(os.path.basename(fp))
+            except Exception:
+                pass
+
+        return {"status": "success", "purged_count": purged, "purged_samples": purged_files[:10]}
+
 annotation_engine = AnnotationEngine()
+

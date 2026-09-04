@@ -474,6 +474,20 @@ def reload_annotation_model():
     success = annotation_engine.reload_model()
     return {"status": "success" if success else "failed", "reloaded": success}
 
+class DeleteFrameRequest(BaseModel):
+    image_path: str
+    base_id: Optional[str] = None
+
+@app.post("/api/annotation/delete_frame")
+def delete_annotation_frame(req: DeleteFrameRequest):
+    """Deletes a corrupted or unwanted CCTV frame from the dataset."""
+    return annotation_engine.delete_frame(req.image_path, req.base_id)
+
+@app.post("/api/annotation/purge_corrupt_frames")
+def purge_corrupt_frames():
+    """Scans and automatically purges all severe packet-loss / vertical stripe / empty gray frames."""
+    return annotation_engine.purge_corrupted_frames()
+
 # ─── High-Throughput Cluster Scaling & Active Learning APIs ─────────────
 
 @app.get("/api/scale/telemetry")

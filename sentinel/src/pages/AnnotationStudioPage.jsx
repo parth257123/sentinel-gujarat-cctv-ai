@@ -29,6 +29,7 @@ export function AnnotationStudioPage() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showLabels, setShowLabels] = useState(true); // Toggle to show/hide text badges
+  const [isPurging, setIsPurging] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [showScaleModal, setShowScaleModal] = useState(false);
   const [scaleTelemetry, setScaleTelemetry] = useState(null);
@@ -129,7 +130,9 @@ export function AnnotationStudioPage() {
           } : b));
         }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedBoxIdx !== null) {
+        if (e.shiftKey) {
+          handleDeleteFrame();
+        } else if (selectedBoxIdx !== null) {
           deleteBox(selectedBoxIdx);
         }
       } else if (e.key === 'l' || e.key === 'L') {
@@ -138,7 +141,7 @@ export function AnnotationStudioPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedBoxIdx]);
+  }, [selectedBoxIdx, activeFrame, frames, selectedFrameIdx]);
 
   // Drag to draw bounding box
   const handleMouseDown = (e) => {
@@ -256,6 +259,66 @@ export function AnnotationStudioPage() {
     if (selectedBoxIdx === idx) setSelectedBoxIdx(null);
   };
 
+  // Delete current frame (e.g. corrupt, packet drop, blurry gray frame)
+  const handleDeleteFrame = async () => {
+    if (!activeFrame) return;
+    const confirmDelete = window.confirm(`Permanently delete this corrupted image (${activeFrame.filename})?`);
+    if (!confirmDelete) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/annotation/delete_frame`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_path: activeFrame.full_path,
+          base_id: activeFrame.base_id
+        })
+      }).then(r => r.json());
+
+      if (res.status === 'success' || res.deleted) {
+        setFeedbackMsg(`🗑️ Deleted ${activeFrame.filename}`);
+        setTimeout(() => setFeedbackMsg(''), 2500);
+
+        // Remove from local frames state
+        const remaining = frames.filter((_, idx) => idx !== selectedFrameIdx);
+        setFrames(remaining);
+        setBoxes([]);
+        if (selectedFrameIdx >= remaining.length && remaining.length > 0) {
+          setSelectedFrameIdx(remaining.length - 1);
+        }
+        // Refresh dataset stats
+        fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json()).then(setStats);
+      } else {
+        alert("Failed to delete frame: " + (res.detail || "Server error"));
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+  };
+
+  // Auto-purge all corrupted/striped/blank frames across entire dataset
+  const handlePurgeCorruptFrames = async () => {
+    const confirmPurge = window.confirm("🧹 Auto-Purge will scan all frames and delete severe H.264 packet-loss / vertical striped / blank gray frames across the dataset. Proceed?");
+    if (!confirmPurge) return;
+
+    setIsPurging(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/annotation/purge_corrupt_frames`, {
+        method: 'POST'
+      }).then(r => r.json());
+
+      if (res.status === 'success') {
+        setFeedbackMsg(`🧹 Auto-purged ${res.purged_count} corrupted frames!`);
+        setTimeout(() => setFeedbackMsg(''), 4000);
+        loadFramesAndStats();
+      }
+    } catch (err) {
+      console.error("Purge error:", err);
+    } finally {
+      setIsPurging(false);
+    }
+  };
+
   // Filter frames
   const filteredFrames = frames.filter(f => {
     if (filter === 'pending' && f.is_annotated) return false;
@@ -293,6 +356,21 @@ export function AnnotationStudioPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+          <button
+            onClick={handlePurgeCorruptFrames}
+            disabled={isPurging}
+            title="Scan and auto-delete all gray/striped decoder drop frames across the entire dataset"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '6px',
+              background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)',
+              color: '#fbbf24', padding: '8px 12px', borderRadius: '8px',
+              fontSize: '12px', fontWeight: '700', cursor: isPurging ? 'wait' : 'pointer'
+            }}
+          >
+            <Trash2 size={14} />
+            {isPurging ? 'Purging Corrupted...' : '🧹 Auto-Purge Corrupt'}
+          </button>
+
           <button
             onClick={() => { setShowScaleModal(true); loadScaleData(); }}
             style={{
@@ -487,11 +565,26 @@ export function AnnotationStudioPage() {
                 onClick={() => setBoxes([])}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '4px',
-                  background: '#1e293b', color: '#ef4444', border: '1px solid #334155',
+                  background: '#1e293b', color: '#94a3b8', border: '1px solid #334155',
                   padding: '6px 10px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer'
                 }}
               >
-                <Trash2 size={14} /> Clear
+                Clear Boxes
+              </button>
+
+              <button
+                onClick={handleDeleteFrame}
+                disabled={!activeFrame}
+                title="Permanently delete this corrupted image (Hotkey: Shift+Delete)"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '5px',
+                  background: 'rgba(239, 68, 68, 0.15)', color: '#f87171',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                  cursor: 'pointer', transition: 'all 0.15s'
+                }}
+              >
+                <Trash2 size={14} /> Delete Image
               </button>
             </div>
           </div>
