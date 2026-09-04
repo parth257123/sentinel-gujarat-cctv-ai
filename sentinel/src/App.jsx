@@ -11,13 +11,14 @@ import { TrajectoryPage } from './pages/TrajectoryPage'
 import { InvestigatorPage } from './pages/InvestigatorPage'
 import { ForensicsDossierPage } from './pages/ForensicsDossierPage'
 import { DataArchivePage } from './pages/DataArchivePage'
+import { AnnotationStudioPage } from './pages/AnnotationStudioPage'
 import { TacticalInterceptModal } from './components/TacticalInterceptModal'
 import { generateWatchlist } from './data/sampleData'
 
 const API_BASE = 'http://localhost:8000';
 
 export default function App() {
-  const [activePage, setActivePage] = useState('map');
+  const [activePage, setActivePage] = useState('annotation');
   const [selectedCamera, setSelectedCamera] = useState(null);
   const [activeInterceptModal, setActiveInterceptModal] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -179,6 +180,7 @@ export default function App() {
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'forensics', label: 'Section 65B Dossier', icon: FileText },
     { id: 'archive', label: 'Forensic Archive', icon: Database },
+    { id: 'annotation', label: 'Annotation Studio', icon: Tag, badge: 'AI' },
   ];
 
   const pageLabels = {
@@ -331,6 +333,7 @@ export default function App() {
           {activePage === 'analytics' && <AnalyticsPage cameras={cameras} detections={detections} alerts={alerts} watchlist={watchlist} />}
           {activePage === 'forensics' && <ForensicsDossierPage />}
           {activePage === 'archive' && <DataArchivePage />}
+          {activePage === 'annotation' && <AnnotationStudioPage />}
         </div>
       </div>
 
