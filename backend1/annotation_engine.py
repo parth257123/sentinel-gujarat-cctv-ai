@@ -82,7 +82,16 @@ class AnnotationEngine:
                 annotated_basenames.add(os.path.splitext(os.path.basename(lf))[0])
 
         results = []
-        for fp in all_frames[:limit]:
+        for fp in all_frames:
+            if len(results) >= limit:
+                break
+            # Skip corrupted/decoder-drop gray frames (flat gray has size < 60KB)
+            try:
+                if os.path.getsize(fp) < 65000:
+                    continue
+            except OSError:
+                continue
+
             fname = os.path.basename(fp)
             base = os.path.splitext(fname)[0]
             cam_id = os.path.basename(os.path.dirname(fp))
