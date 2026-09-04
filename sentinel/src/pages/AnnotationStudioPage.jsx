@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Tag, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, 
-  Trash2, Save, RefreshCw, Eye, Database, Layers, Plus, HelpCircle
+  Trash2, Save, RefreshCw, Eye, EyeOff, Database, Layers, Plus, HelpCircle
 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000';
@@ -28,6 +28,7 @@ export function AnnotationStudioPage() {
   const [selectedLighting, setSelectedLighting] = useState('all');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showLabels, setShowLabels] = useState(true); // Toggle to show/hide text badges
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [showScaleModal, setShowScaleModal] = useState(false);
   const [scaleTelemetry, setScaleTelemetry] = useState(null);
@@ -131,6 +132,8 @@ export function AnnotationStudioPage() {
         if (selectedBoxIdx !== null) {
           deleteBox(selectedBoxIdx);
         }
+      } else if (e.key === 'l' || e.key === 'L') {
+        setShowLabels(prev => !prev);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -449,7 +452,23 @@ export function AnnotationStudioPage() {
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => setShowLabels(prev => !prev)}
+                title="Toggle text labels on/off (Hotkey: L)"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  background: showLabels ? 'rgba(30, 41, 59, 0.9)' : 'rgba(16, 185, 129, 0.2)',
+                  color: showLabels ? '#cbd5e1' : '#10b981',
+                  border: showLabels ? '1px solid #334155' : '1px solid #10b981',
+                  padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600',
+                  cursor: 'pointer', transition: 'all 0.15s'
+                }}
+              >
+                {showLabels ? <Eye size={14} /> : <EyeOff size={14} />}
+                {showLabels ? 'Labels: ON' : 'Boxes Only (Clean)'}
+              </button>
+
               <button
                 onClick={handleAiPreAnnotate}
                 disabled={isAiLoading || !activeFrame}
@@ -533,27 +552,29 @@ export function AnnotationStudioPage() {
                             setSelectedBoxIdx(idx);
                           }}
                         />
-                        {/* Label Tag Header */}
-                        <g transform={`translate(0, 0)`}>
-                          <rect
-                            x={`${x1}%`}
-                            y={`${Math.max(0, y1 - 2.5)}%`}
-                            width={`${Math.min(100, Math.max(12, b.class_name.length * 1.6))}%`}
-                            height="18"
-                            fill={b.color}
-                            rx="2"
-                          />
-                          <text
-                            x={`${x1 + 0.5}%`}
-                            y={`${Math.max(1.8, y1 - 0.5)}%`}
-                            fill="#ffffff"
-                            fontSize="11"
-                            fontWeight="bold"
-                            fontFamily="monospace"
-                          >
-                            {b.class_name} {b.confidence ? `(${b.confidence})` : ''}
-                          </text>
-                        </g>
+                        {/* Label Tag Header - toggled by switch or when box is selected */}
+                        {(showLabels || isSelected) && (
+                          <g transform={`translate(0, 0)`} style={{ pointerEvents: 'none' }}>
+                            <rect
+                              x={`${x1}%`}
+                              y={`${Math.max(0, y1 - 2.5)}%`}
+                              width={`${Math.min(100, Math.max(12, b.class_name.length * 1.6))}%`}
+                              height="18"
+                              fill={b.color}
+                              rx="2"
+                            />
+                            <text
+                              x={`${x1 + 0.5}%`}
+                              y={`${Math.max(1.8, y1 - 0.5)}%`}
+                              fill="#ffffff"
+                              fontSize="11"
+                              fontWeight="bold"
+                              fontFamily="monospace"
+                            >
+                              {b.class_name} {b.confidence ? `(${b.confidence})` : ''}
+                            </text>
+                          </g>
+                        )}
                       </g>
                     );
                   })}
