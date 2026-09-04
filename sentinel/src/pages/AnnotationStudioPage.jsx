@@ -25,6 +25,7 @@ export function AnnotationStudioPage() {
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, annotated
   const [selectedCam, setSelectedCam] = useState('all');
+  const [selectedLighting, setSelectedLighting] = useState('all');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
@@ -257,6 +258,7 @@ export function AnnotationStudioPage() {
     if (filter === 'pending' && f.is_annotated) return false;
     if (filter === 'annotated' && !f.is_annotated) return false;
     if (selectedCam !== 'all' && f.cam_id !== selectedCam) return false;
+    if (selectedLighting !== 'all' && f.lighting !== selectedLighting) return false;
     return true;
   });
 
@@ -352,6 +354,20 @@ export function AnnotationStudioPage() {
               {uniqueCams.map(c => (
                 <option key={c} value={c}>{c.toUpperCase()}</option>
               ))}
+            </select>
+
+            <select
+              value={selectedLighting}
+              onChange={(e) => setSelectedLighting(e.target.value)}
+              style={{
+                background: '#1e293b', border: '1px solid #334155', color: '#f8fafc',
+                padding: '6px 8px', borderRadius: '6px', fontSize: '11px', outline: 'none', marginTop: '6px'
+              }}
+            >
+              <option value="all">All Lighting Conditions</option>
+              <option value="daylight_morning_rush">☀️ Daylight &amp; Morning Rush</option>
+              <option value="twilight_dawn_dusk">🌆 Twilight &amp; Dawn/Dusk</option>
+              <option value="night_sodium_lighting">🌙 Night Sodium &amp; Glare</option>
             </select>
           </div>
 

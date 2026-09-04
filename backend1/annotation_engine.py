@@ -15,7 +15,11 @@ import yaml
 from ultralytics import YOLO
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRAMES_DIR = os.path.join(BASE_DIR, "harvested_cctv_frames")
+HEAVYWEIGHT_DIR = os.path.join(BASE_DIR, "datasets", "heavyweight_5500_cctv_dataset")
+HARVESTED_DIR = os.path.join(BASE_DIR, "harvested_cctv_frames")
+
+# Prioritize the curated heavyweight dataset requested by user
+FRAMES_DIR = HEAVYWEIGHT_DIR if os.path.exists(HEAVYWEIGHT_DIR) else HARVESTED_DIR
 DATASET_DIR = os.path.join(BASE_DIR, "datasets", "manual_annotated_gujarat")
 
 # Standardized 6-Class Indian Traffic & Pedestrian Taxonomy
@@ -69,11 +73,11 @@ class AnnotationEngine:
             with open(yaml_path, "w") as f:
                 yaml.dump(data_dict, f, default_flow_style=False)
 
-    def list_available_frames(self, limit=200):
-        """Returns list of harvested CCTV frames with annotation status."""
-        all_frames = glob.glob(os.path.join(FRAMES_DIR, "*", "*.jpg"))
-        # Sort by newest first
-        all_frames.sort(key=os.path.getmtime, reverse=True)
+    def list_available_frames(self, limit=5000):
+        """Returns list of curated heavyweight CCTV frames with annotation status."""
+        all_frames = glob.glob(os.path.join(FRAMES_DIR, "**", "*.jpg"), recursive=True)
+        # Sort by filename
+        all_frames.sort(key=lambda x: os.path.basename(x))
 
         annotated_basenames = set()
         for split in ["train", "val"]:
@@ -85,21 +89,16 @@ class AnnotationEngine:
         for fp in all_frames:
             if len(results) >= limit:
                 break
-            # Skip corrupted/decoder-drop gray frames (flat gray has size < 60KB)
-            try:
-                if os.path.getsize(fp) < 65000:
-                    continue
-            except OSError:
-                continue
-
             fname = os.path.basename(fp)
             base = os.path.splitext(fname)[0]
-            cam_id = os.path.basename(os.path.dirname(fp))
+            cam_id = fname.split("_")[0] if fname.startswith("cam") else os.path.basename(os.path.dirname(fp))
+            lighting_cat = os.path.basename(os.path.dirname(fp))
             is_annotated = base in annotated_basenames
             results.append({
                 "filename": fname,
                 "base_id": base,
                 "cam_id": cam_id,
+                "lighting": lighting_cat,
                 "full_path": fp,
                 "is_annotated": is_annotated,
                 "size_kb": round(os.path.getsize(fp) / 1024, 1),

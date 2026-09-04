@@ -432,7 +432,7 @@ class SaveAnnotationRequest(BaseModel):
     boxes: List[Dict[str, Any]]
 
 @app.get("/api/annotation/frames")
-def get_annotation_frames(limit: int = 300):
+def get_annotation_frames(limit: int = 5000):
     """Lists harvested frames available for manual annotation."""
     return annotation_engine.list_available_frames(limit=limit)
 
