@@ -1,0 +1,2525 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-ridate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Login | Gujarat Police Innovation Challenge 2026</title>
+    <link rel="icon" type="image/png" href="https://sentinel.gujarat.gov.in/public/logos/gujarat police logo.png">
+    <link href="https://sentinel.gujarat.gov.in/public/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://sentinel.gujarat.gov.in/public/css/all.min.css" rel="stylesheet">
+    <link href="https://sentinel.gujarat.gov.in/public/css/plus-jakarta-sans.css" rel="stylesheet">
+    <style>
+        :root {
+            --navy: #0a1628;
+            --blue: #0f2d5e;
+            --accent: #FF6B00;
+            --accent2: #e8a020;
+            --light: #ffffff;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --muted: #64748b;
+        }
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            /* clip, not hidden: keeps the sticky navbar working */
+            overflow-x: clip;
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: #ffffff;
+            color: var(--text);
+            margin: 0;
+            max-width: 100%;
+            overflow-x: clip;
+        }
+
+        /* ── Announcement bar ── */
+        .announce-bar {
+            background: var(--navy);
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.75rem;
+            padding: 7px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .announce-bar a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .announce-bar .sep {
+            margin: 0 12px;
+            opacity: 0.3;
+        }
+
+        /* ── Navbar ── */
+        .site-nav {
+            background: #ffffff;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(10, 22, 40, 0.12);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: box-shadow 0.3s;
+        }
+
+        .site-nav.scrolled {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            flex-shrink: 0;
+        }
+
+        .nav-brand img {
+            height: 42px;
+        }
+
+        @media (min-width: 1440px) {
+            .nav-brand img {
+                height: 52px;
+            }
+        }
+
+        .nav-brand-text {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            line-height: 1.2;
+        }
+
+        .nav-brand-col {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            color: #0a1628;
+            white-space: nowrap;
+        }
+
+        .nav-brand-line1 {
+            font-size: 0.86rem;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+        }
+
+        .nav-brand-line2 {
+            font-size: 0.74rem;
+            font-weight: 400;
+            color: rgba(10, 22, 40, 0.85);
+        }
+
+        @media (min-width: 1440px) {
+            .nav-brand-line1 {
+                font-size: 1rem;
+            }
+            .nav-brand-line2 {
+                font-size: 0.85rem;
+            }
+        }
+
+        .nav-scrb {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            line-height: 1.15;
+            color: #0a1628;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+            white-space: nowrap;
+            text-align: right;
+            border-left: 1px solid rgba(10, 22, 40, 0.15);
+            padding-left: 8px;
+            margin-right: 6px;
+        }
+
+        @media (min-width: 1400px) {
+            .nav-scrb {
+                font-size: 0.78rem;
+                padding-left: 10px;
+                margin-right: 8px;
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .nav-scrb {
+                font-size: 0.84rem;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .nav-scrb {
+                font-size: 0.8rem;
+                text-align: left;
+                border-left: none;
+                padding-left: 0;
+                margin: 8px 0;
+            }
+        }
+
+        .nav-brand-divider {
+            width: 1px;
+            align-self: stretch;
+            min-height: 28px;
+            background: rgba(10, 22, 40, 0.25);
+        }
+
+        @media (max-width: 575.98px) {
+            .nav-brand-text {
+                gap: 6px;
+            }
+
+            .nav-brand-line1 {
+                font-size: 0.8rem;
+            }
+
+            .nav-brand-line2 {
+                font-size: 0.7rem;
+            }
+
+            .nav-brand img {
+                height: 38px;
+            }
+        }
+
+        .nav-brand-sub {
+            color: #000000;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.1px;
+            white-space: nowrap;
+        }
+
+        .nav-brand-powered {
+            font-size: 0.52rem;
+            font-weight: 500;
+            color: rgba(0, 0, 0, 0.5);
+            letter-spacing: 0.2px;
+            margin-top: 1px;
+            white-space: nowrap;
+        }
+
+        .nav-brand-powered span {
+            color: rgba(0, 0, 0, 0.75);
+            font-weight: 600;
+        }
+
+        .site-nav .nav-link {
+            color: #000000 !important;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 6px 8px !important;
+            transition: color 0.2s ease-in-out, background 0.2s ease-in-out;
+            letter-spacing: -0.1px;
+            white-space: nowrap;
+            background: transparent !important;
+            box-shadow: none !important;
+        }
+
+        @media (min-width: 1360px) {
+            .site-nav .nav-link {
+                font-size: 0.85rem;
+                padding: 6px 10px !important;
+                letter-spacing: 0;
+            }
+        }
+
+        @media (min-width: 1540px) {
+            .site-nav .nav-link {
+                font-size: 0.9rem;
+                padding: 8px 14px !important;
+            }
+        }
+
+        .site-nav .nav-link:hover {
+            color: #000000 !important;
+            background: rgba(0, 0, 0, 0.06) !important;
+            border-radius: 6px;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        .site-nav .nav-link.active {
+            color: #000000 !important;
+            background: rgba(0, 0, 0, 0.08) !important;
+            border-radius: 6px;
+            font-weight: 800;
+            box-shadow: none !important;
+        }
+
+        /* Guest-only hover hint (Resources nav item) */
+        .site-nav .nav-hint-wrap {
+            position: relative;
+        }
+
+        .site-nav .nav-hint {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-6px);
+            z-index: 1080;
+            width: max-content;
+            max-width: 240px;
+            white-space: normal;
+            text-align: center;
+            background: #0a1628;
+            color: #fff;
+            font-size: 0.76rem;
+            font-weight: 600;
+            line-height: 1.35;
+            padding: 8px 12px;
+            border-radius: 6px;
+            box-shadow: 0 6px 18px rgba(10, 22, 40, 0.25);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+        }
+
+        .site-nav .nav-hint::before {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: #0a1628;
+        }
+
+        .site-nav .nav-hint-wrap:hover .nav-hint,
+        .site-nav .nav-hint-wrap:focus-within .nav-hint {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        @media (max-width: 1199.98px) {
+            .site-nav .nav-hint {
+                position: static;
+                display: none;
+                transform: none;
+                max-width: 100%;
+                margin: 4px 0 2px;
+            }
+
+            .site-nav .nav-hint::before {
+                display: none;
+            }
+
+            .site-nav .nav-hint-wrap:hover .nav-hint,
+            .site-nav .nav-hint-wrap:focus-within .nav-hint {
+                display: block;
+                transform: none;
+            }
+        }
+
+        .collapse.navbar-collapse.ms-4 {
+            margin-left: 6px !important;
+        }
+
+        .navbar-nav.me-auto {
+            gap: 10px !important;
+        }
+
+        .navbar-nav.align-items-center {
+            gap: 8px !important;
+        }
+
+        .site-nav .navbar-toggler-icon {
+            filter: none;
+        }
+
+        .btn-nav-cta {
+            background: transparent;
+            color: #000000 !important;
+            border: 1.5px solid rgba(0, 0, 0, 0.25);
+            border-radius: 6px;
+            padding: 5px 10px !important;
+            font-weight: 700;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        @media (min-width: 1440px) {
+            .btn-nav-cta {
+                padding: 7px 14px !important;
+                font-size: 0.86rem;
+            }
+        }
+
+        .btn-nav-cta:hover {
+            background: rgba(0, 0, 0, 0.06);
+            border-color: rgba(0, 0, 0, 0.5);
+            color: #000000 !important;
+            transform: translateY(-1px);
+        }
+
+        /* beats `.site-nav .nav-link { background: transparent !important }` */
+        .site-nav .nav-link.btn-nav-register {
+            background: #FF6A00 !important;
+            border-color: #FF6A00 !important;
+            color: #000000 !important;
+        }
+
+        .site-nav .nav-link.btn-nav-register:hover {
+            background: #e05a00 !important;
+            border-color: #e05a00 !important;
+            color: #000000 !important;
+        }
+
+        /* Apply Now — primary action for signed-in participants */
+        .site-nav .nav-link.btn-nav-apply {
+            background: #FF6A00 !important;
+            border-color: #FF6A00 !important;
+            color: #000000 !important;
+            box-shadow: 0 4px 12px rgba(255, 106, 0, 0.35);
+        }
+
+        .site-nav .nav-link.btn-nav-apply:hover {
+            background: #e05a00 !important;
+            border-color: #e05a00 !important;
+            color: #000000 !important;
+            box-shadow: 0 6px 16px rgba(255, 106, 0, 0.45);
+        }
+
+        /* Submission — filled orange so it reads apart from the outlined Admin Panel button */
+        .site-nav .nav-link.btn-nav-submission {
+            background: #FF6A00 !important;
+            border-color: #FF6A00 !important;
+            color: #000000 !important;
+            box-shadow: 0 4px 12px rgba(255, 106, 0, 0.35);
+        }
+
+        .site-nav .nav-link.btn-nav-submission:hover {
+            background: #e05a00 !important;
+            border-color: #e05a00 !important;
+            color: #000000 !important;
+            box-shadow: 0 6px 16px rgba(255, 106, 0, 0.45);
+        }
+
+        .site-nav .dropdown-menu {
+            background: #0f2d5e;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 6px;
+            min-width: 200px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .site-nav .dropdown-item {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.84rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .site-nav .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+
+        .site-nav .dropdown-divider {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* ── Breadcrumb ── */
+        .page-breadcrumb {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 9px 0;
+            font-size: 0.8rem;
+        }
+
+        .page-breadcrumb .breadcrumb {
+            margin: 0;
+        }
+
+        .page-breadcrumb .breadcrumb-item a {
+            color: var(--blue);
+            text-decoration: none;
+        }
+
+        .page-breadcrumb .breadcrumb-item.active {
+            color: var(--muted);
+        }
+
+        .page-breadcrumb .breadcrumb-item+.breadcrumb-item::before {
+            color: var(--muted);
+        }
+
+        /* ── Main ── */
+        .main-content {
+            min-height: calc(100vh - 280px);
+            padding: 0;
+        }
+
+        /* ── Cards ── */
+        .gp-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
+        }
+
+        .gp-card .card-header-gp {
+            background: linear-gradient(90deg, var(--navy), var(--blue));
+            color: #fff;
+            padding: 13px 20px;
+            border-radius: 12px 12px 0 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--accent);
+        }
+
+        /* ── Buttons ── */
+        .btn-gp-primary {
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            border-radius: 8px;
+            letter-spacing: 0.2px;
+            transition: all 0.2s;
+        }
+
+        .btn-gp-primary:hover {
+            background: var(--navy);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .btn-gp-saffron {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            font-weight: 600;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-gp-saffron:hover {
+            background: #e05a00;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        /* ── Footer ── */
+        .site-footer {
+            background: var(--navy);
+            color: rgba(255, 255, 255, 0.55);
+            padding: 56px 0 0;
+            margin-top: 0;
+        }
+
+        .footer-logo-wrap {
+            margin-bottom: 20px;
+        }
+
+        .footer-logo-wrap img {
+            height: 48px;
+        }
+
+        .site-footer h6 {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 16px;
+        }
+
+        .site-footer p {
+            font-size: 0.84rem;
+            line-height: 1.8;
+        }
+
+        .site-footer a {
+            color: rgba(255, 255, 255, 0.55);
+            text-decoration: none;
+            font-size: 0.84rem;
+            transition: color 0.2s;
+        }
+
+        .site-footer a:hover {
+            color: var(--accent);
+        }
+
+        .site-footer ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .site-footer ul li {
+            margin-bottom: 9px;
+            font-size: 0.84rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .site-footer ul li i {
+            color: var(--accent);
+            margin-top: 3px;
+            flex-shrink: 0;
+            font-size: 0.78rem;
+        }
+
+        .footer-divider {
+            border-color: rgba(255, 255, 255, 0.07);
+            margin: 14px 0 0;
+        }
+
+        .footer-bottom {
+            padding: 8px 0 16px;
+            font-size: 0.76rem;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .footer-bottom a {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .footer-bottom a:hover {
+            color: var(--accent);
+        }
+
+        .footer-social a {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.07);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .footer-social a:hover {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        /* ── Alerts ── */
+        .alert {
+            border-radius: 10px;
+            font-size: 0.87rem;
+            border: none;
+        }
+
+        .alert-success {
+            background: #f0fdf4;
+            color: #166534;
+            border-left: 4px solid #22c55e;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-info {
+            background: #eff6ff;
+            color: #1e40af;
+            border-left: 4px solid #3b82f6;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--blue);
+        }
+
+        /* ── Accessibility toolbar ── */
+        #acc-toggle {
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1100;
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            width: 36px;
+            height: 80px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+            transition: width 0.2s;
+        }
+
+        #acc-toggle:hover {
+            width: 42px;
+            background: var(--navy);
+        }
+
+        #acc-toggle span {
+            writing-mode: vertical-rl;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        #acc-panel {
+            position: fixed;
+            left: -220px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 1099;
+            width: 220px;
+            background: #fff;
+            border-radius: 0 12px 12px 0;
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+            padding: 20px 16px;
+            transition: left 0.3s ease;
+            border: 1px solid var(--border);
+            border-left: none;
+        }
+
+        #acc-panel.open {
+            left: 36px;
+        }
+
+        .acc-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .acc-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--navy);
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .acc-btn:hover {
+            background: #fff;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .acc-btn.active {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+
+        .acc-btn i {
+            width: 16px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .acc-font-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .acc-font-row .acc-btn {
+            flex: 1;
+            justify-content: center;
+            margin-bottom: 0;
+        }
+
+        /* High Contrast mode */
+        body.acc-contrast #hc-wrap {
+            filter: invert(1) hue-rotate(180deg);
+            background: #000 !important;
+            min-height: 100vh;
+        }
+
+        body.acc-contrast #hc-wrap .announce-bar,
+        body.acc-contrast #hc-wrap .site-nav,
+        body.acc-contrast #hc-wrap .container,
+        body.acc-contrast #hc-wrap .card,
+        body.acc-contrast #hc-wrap footer {
+            filter: invert(1) hue-rotate(180deg);
+        }
+
+        body.acc-contrast #hc-wrap img,
+        body.acc-contrast #hc-wrap video,
+        body.acc-contrast #hc-wrap iframe {
+            filter: invert(1) hue-rotate(180deg);
+        }
+
+        /* Dyslexia font */
+        body.acc-dyslexia,
+        body.acc-dyslexia * {
+            font-family: 'OpenDyslexic', 'Comic Sans MS', 'Arial', sans-serif !important;
+            letter-spacing: 0.05em;
+            word-spacing: 0.1em;
+            line-height: 1.9 !important;
+        }
+
+        /* TTS highlight */
+        .tts-speaking {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* ════════════════════════════════════════════════════════════
+           🌊 SMOOTH SLIDER & TABLE SCROLLING (MOBILE & DESKTOP)
+           ════════════════════════════════════════════════════════════ */
+        html {
+            scroll-behavior: smooth !important;
+        }
+
+        .gov-table-container,
+        .pdf-table-wrap,
+        .table-responsive,
+        .hiw-steps {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            scroll-behavior: smooth !important;
+            overscroll-behavior-x: contain;
+            touch-action: pan-x pan-y;
+        }
+
+        /* Sleek modern scrollbars */
+        .gov-table-container::-webkit-scrollbar,
+        .pdf-table-wrap::-webkit-scrollbar,
+        .table-responsive::-webkit-scrollbar,
+        .hiw-steps::-webkit-scrollbar {
+            height: 7px;
+            width: 7px;
+        }
+
+        .gov-table-container::-webkit-scrollbar-track,
+        .pdf-table-wrap::-webkit-scrollbar-track,
+        .table-responsive::-webkit-scrollbar-track,
+        .hiw-steps::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+
+        .gov-table-container::-webkit-scrollbar-thumb,
+        .pdf-table-wrap::-webkit-scrollbar-thumb,
+        .table-responsive::-webkit-scrollbar-thumb,
+        .hiw-steps::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+            transition: background 0.2s ease;
+        }
+
+        .gov-table-container::-webkit-scrollbar-thumb:hover,
+        .pdf-table-wrap::-webkit-scrollbar-thumb:hover,
+        .table-responsive::-webkit-scrollbar-thumb:hover,
+        .hiw-steps::-webkit-scrollbar-thumb:hover {
+            background: var(--accent, #ff6b00);
+        }
+
+        .gov-table,
+        .pdf-table {
+            min-width: 520px;
+        }
+    </style>
+    <style>
+    .auth-card {
+        background: #fff;
+        border: 1px solid #d0d8e8;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 24px rgba(10,34,64,0.1);
+    }
+    .auth-left {
+        background: linear-gradient(160deg, #0a2240 0%, #1a3a6b 100%);
+        color: #fff;
+        padding: 40px 32px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .auth-right { padding: 40px 36px; }
+    .auth-title { font-size: 1.5rem; font-weight: 800; color: #0a2240; margin-bottom: 6px; }
+    .auth-subtitle { font-size: 0.85rem; color: #7a8faa; margin-bottom: 28px; }
+    .form-label { font-size: 0.83rem; font-weight: 600; color: #3a4a6b; margin-bottom: 5px; }
+    .form-control {
+        border: 1px solid #c5d0e8;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        padding: 10px 14px;
+        color: #1a1a2e;
+    }
+    .form-control:focus { border-color: #1a3a6b; box-shadow: 0 0 0 3px rgba(26,58,107,0.1); }
+    .input-group-text { background: #f4f6fb; border-color: #c5d0e8; color: #7a8faa; }
+    .btn-submit {
+        background: linear-gradient(90deg, #0a2240, #1a3a6b);
+        color: #fff; border: none;
+        padding: 11px; font-weight: 700;
+        border-radius: 4px; font-size: 0.92rem;
+        letter-spacing: 0.3px; width: 100%;
+        transition: opacity 0.2s;
+    }
+    .btn-submit:hover { opacity: 0.9; color: #fff; }
+    .divider { border-top: 1px solid #e8edf5; margin: 20px 0; position: relative; }
+    .divider span {
+        position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+        background: #fff; padding: 0 10px;
+        font-size: 0.78rem; color: #aaa;
+    }
+    .alert-login-error {
+        background: #fff5f5;
+        border: 1px solid #fecaca;
+        border-left: 4px solid #ef4444;
+        border-radius: 4px;
+        padding: 10px 14px;
+        font-size: 0.84rem;
+        color: #b91c1c;
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .alert-login-success {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a;
+        border-radius: 4px;
+        padding: 10px 14px;
+        font-size: 0.84rem;
+        color: #15803d;
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    .auth-notice {
+        background: #fff8f2;
+        border: 1px solid #ffd0a8;
+        border-radius: 6px;
+        padding: 11px 16px;
+        margin-bottom: 16px;
+        font-size: 0.86rem;
+        font-weight: 600;
+        color: #9a4a00;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        gap: 8px;
+    }
+</style>
+</head>
+
+<body>
+
+    
+    <div id="global-countdown-bar"
+        style="
+        background: var(--navy);
+        color: #fff;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 0.78rem;
+        padding: 7px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        position: static;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    ">
+        <span
+            style="display:flex;align-items:center;gap:6px;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:0.72rem;color:rgba(255,255,255,0.75);">
+            <i class="fa fa-clock" style="color:var(--accent);"></i> Registration and Submission closes in
+        </span>
+        <span style="font-size:0.72rem;color:rgba(255,255,255,0.55);font-weight:600;">
+            Deadline: <strong
+                style="color:#fff;">07 September 2026</strong>
+        </span>
+        <div style="display:flex;gap:6px;align-items:center;">
+            <div
+                style="text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 10px;min-width:44px;">
+                <div id="gcd-days" style="font-size:1rem;font-weight:900;line-height:1.1;">--</div>
+                <div
+                    style="font-size:0.55rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;">
+                    Days</div>
+            </div>
+            <div
+                style="text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 10px;min-width:44px;">
+                <div id="gcd-hours" style="font-size:1rem;font-weight:900;line-height:1.1;">--</div>
+                <div
+                    style="font-size:0.55rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;">
+                    Hrs</div>
+            </div>
+            <div
+                style="text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 10px;min-width:44px;">
+                <div id="gcd-mins" style="font-size:1rem;font-weight:900;line-height:1.1;">--</div>
+                <div
+                    style="font-size:0.55rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;">
+                    Min</div>
+            </div>
+            <div
+                style="text-align:center;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 10px;min-width:44px;">
+                <div id="gcd-secs" style="font-size:1rem;font-weight:900;line-height:1.1;">--</div>
+                <div
+                    style="font-size:0.55rem;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.5px;">
+                    Sec</div>
+            </div>
+        </div>
+    </div>
+
+    
+    <nav class="site-nav navbar navbar-expand-xl" id="siteNav">
+        <div class="container-fluid px-2 px-xl-3">
+            <a class="nav-brand d-inline-flex align-items-center gap-2 text-decoration-none" href="https://sentinel.gujarat.gov.in">
+                <img src="https://sentinel.gujarat.gov.in/public/logos/gujarat police logo.png" alt="Gujarat Police">
+                <span class="nav-brand-text">
+                    <span class="nav-brand-divider"></span>
+                    <span class="nav-brand-col">
+                        <span class="nav-brand-line1">Government of Gujarat</span>
+                        <span class="nav-brand-line2">Home Department</span>
+                    </span>
+                </span>
+            </a>
+
+            <button class="navbar-toggler border-0 ms-auto" type="button" data-bs-toggle="collapse"
+                data-bs-target="#mainNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mainNav">
+                <ul class="navbar-nav mx-auto gap-0 gap-xxl-1">
+
+                    <li class="nav-item">
+                        <a class="nav-link "
+                            href="https://sentinel.gujarat.gov.in/about"><b>About</b></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                            href="https://sentinel.gujarat.gov.in/phases"><b>Prize Money</b></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                            href="https://sentinel.gujarat.gov.in/resource">
+                            <b>Resources</b>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                            href="https://sentinel.gujarat.gov.in/problems"><b>Problem Statements &amp; Step by Step Guide</b></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                            href="https://sentinel.gujarat.gov.in/schedule"><b>Schedule &amp; Venue</b></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                            href="https://sentinel.gujarat.gov.in/faqs"><b>FAQs</b></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link "
+                            href="https://sentinel.gujarat.gov.in/contact"><b>Contact Us</b></a>
+                    </li>
+                </ul>
+
+                <span class="nav-scrb me-2 me-xl-3">
+                    <span>State Crime</span>
+                    <span>Records Bureau</span>
+                </span>
+
+                
+                <ul class="navbar-nav align-items-center gap-1 gap-xl-2">
+                                            <li class="nav-item">
+                            <a class="nav-link" href="https://sentinel.gujarat.gov.in/login"><b>Sign In</b></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn-nav-cta btn-nav-register"
+                                href="https://sentinel.gujarat.gov.in/register"><b>Register</b></a>
+                        </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    
+            <div class="page-breadcrumb">
+            <div class="container-fluid px-4">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="https://sentinel.gujarat.gov.in">Home</a></li>
+                            <li class="breadcrumb-item active">Login</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    
+    
+    <div class="container-fluid px-4 mt-3">
+                                                                        </div>
+
+    
+    <div id="social-sidebar"
+        style="
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 10px 0 0 10px;
+    overflow: hidden;
+    box-shadow: -4px 0 20px rgba(0,0,0,0.12);
+">
+        
+        <a href="https://x.com/GujaratPolice" target="_blank" title="X (Twitter)"
+            style="display:flex;align-items:center;justify-content:center;width:46px;height:46px;background:#fff;color:#000;font-size:0.95rem;text-decoration:none;border-bottom:1px solid #e2e8f0;transition:all 0.2s;padding:12px;"
+            onmouseover="this.style.background='#f1f5f9';this.style.width='56px'"
+            onmouseout="this.style.background='#fff';this.style.width='46px'">
+            <i class="fab fa-x-twitter"></i>
+        </a>
+        
+        <a href="https://www.instagram.com/gujaratpolice_/" target="_blank" title="Instagram"
+            style="display:flex;align-items:center;justify-content:center;width:46px;height:46px;background:#fff;color:#000;font-size:1rem;text-decoration:none;border-bottom:1px solid #e2e8f0;transition:all 0.2s;padding:12px;"
+            onmouseover="this.style.background='#f1f5f9';this.style.width='56px'"
+            onmouseout="this.style.background='#fff';this.style.width='46px'">
+            <i class="fab fa-instagram"></i>
+        </a>
+        <a href="https://www.facebook.com/dgpgujaratofficial/" target="_blank" title="Facebook"
+            style="display:flex;align-items:center;justify-content:center;width:46px;height:46px;background:#fff;color:#000;font-size:1rem;text-decoration:none;transition:all 0.2s;padding:12px;"
+            onmouseover="this.style.background='#f1f5f9';this.style.width='56px'"
+            onmouseout="this.style.background='#fff';this.style.width='46px'">
+            <i class="fab fa-facebook-f"></i>
+        </a>
+    </div>
+
+    
+    <main class="main-content">
+        <div class="container-fluid px-4">
+            <div class="row justify-content-center">
+    <div class="col-xl-9 col-lg-10">
+        <div class="auth-notice">
+            <i class="fa fa-info-circle" style="color:#FF6B00;"></i>
+            <span><strong style="color:#FF6B00;">Note:</strong> To get Resources, kindly login / register on our portal</span>
+        </div>
+        <div class="auth-card">
+            <div class="row g-0">
+                
+                <div class="col-md-5 auth-left">
+                    <div class="mb-4">
+                        <img src="https://sentinel.gujarat.gov.in/public/logos/gujarat police logo.png" alt="Gujarat Police" style="height:60px;">
+                    </div>
+                    <h3 style="font-weight:800;font-size:1.4rem;line-height:1.3;">Gujarat Police<br>Innovation Hackathon</h3>
+                    <p style="color:#b0c4de;font-size:0.85rem;margin-top:12px;line-height:1.8;">
+                        Sign in to access your dashboard, view problem statements, and manage your applications.
+                    </p>
+                    <div class="mt-4" style="border-top:1px solid rgba(255,255,255,0.15);padding-top:20px;">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="fa fa-check-circle" style="color:#93c5fd;"></i>
+                            <span style="font-size:0.83rem;color:#b0c4de;">OTP-verified secure login</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="fa fa-check-circle" style="color:#93c5fd;"></i>
+                            <span style="font-size:0.83rem;color:#b0c4de;">Track application status in real-time</span>
+                        </div>
+                    </div>
+                    <div class="mt-auto pt-4" style="border-top:1px solid rgba(255,255,255,0.15);margin-top:40px;">
+                        <img src="https://sentinel.gujarat.gov.in/public/logos/ihub-white-logo.png" alt="iHub Gujarat" style="height:40px;border-radius:4px;">
+                    </div>
+                </div>
+
+                
+                <div class="col-md-7 auth-right">
+                    <div class="auth-title">Welcome Back</div>
+                    <div class="auth-subtitle">Enter your credentials to access your account</div>
+
+                    
+                    
+                    
+                    
+                    <form method="POST" action="https://sentinel.gujarat.gov.in/login" autocomplete="off">
+                        <input type="hidden" name="_token" value="l2ltkfhamFvvAfBUhwEdpDW9Cn2xKDAKGCaQk7qQ" autocomplete="off">                        <div class="mb-3">
+                            <label class="form-label">Email Address</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa fa-envelope"></i></span>
+                                <input type="email" name="email" class="form-control "
+                                       placeholder="your@email.com" value="" autocomplete="off">
+                                                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fa fa-lock"></i></span>
+                                <input type="password" name="password" class="form-control " placeholder="Enter your password" autocomplete="new-password">
+                                                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div class="form-check">
+                                <input type="checkbox" name="remember" class="form-check-input" id="remember">
+                                <label class="form-check-label" for="remember" style="font-size:0.83rem;">Remember me</label>
+                            </div>
+                            <a href="https://sentinel.gujarat.gov.in/forgot-password" style="font-size:0.83rem;color:#1a3a6b;">Forgot password?</a>
+                        </div>
+                        <button type="submit" class="btn-submit">
+                            <i class="fa fa-sign-in-alt me-2"></i>Login to Portal
+                        </button>
+                    </form>
+
+                    <div class="divider"><span>OR</span></div>
+
+                    <div class="text-center">
+                        <p style="font-size:0.87rem;color:#5a6a80;">
+                            Don’t have an account?
+                            <a href="https://sentinel.gujarat.gov.in/register" style="color:#1a3a6b;font-weight:700;">Register here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+        </div>
+    </main>
+
+    
+    <footer class="site-footer">
+        <div class="container-fluid px-4">
+            <div class="row g-5">
+                <div class="col-lg-4 col-md-6">
+
+                    <p style="text-align: justify;">Gujarat Police Innovation Hackathon 2026 — A flagship initiative to
+                        harness technology for
+                        public
+                        safety and law enforcement excellence across Gujarat.</p>
+                    <p style="font-size:0.84rem;margin-top:10px;margin-bottom:4px;">
+                        <i class="fa fa-map-marker-alt" style="color:var(--accent);margin-right:6px;"></i>
+                        <a href="https://maps.app.goo.gl/fBjjP1JX1fbXqNRH7" target="_blank" rel="noopener"
+                            style="color:rgba(255,255,255,0.75);">i-Hub Gujarat</a>
+                    </p>
+                    <div class="footer-social d-flex gap-2 mt-3">
+                        <a href="https://x.com/GujaratPolice"><i class="fab fa-x-twitter"></i></a>
+                        <a href="https://www.facebook.com/dgpgujaratofficial/"><i class="fab fa-facebook"></i></a>
+                        
+                        
+                        <a href="https://www.instagram.com/gujaratpolice_/"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6>Quick Links</h6>
+                    <ul>
+                        <li><i class="fa fa-chevron-right"></i><a href="https://sentinel.gujarat.gov.in">Home</a></li>
+                        <li><i class="fa fa-chevron-right"></i><a href="https://sentinel.gujarat.gov.in/problems">Problem
+                                Statements</a></li>
+                                                    <li><i class="fa fa-chevron-right"></i><a href="https://sentinel.gujarat.gov.in/register">Register</a>
+                            </li>
+                            <li><i class="fa fa-chevron-right"></i><a href="https://sentinel.gujarat.gov.in/login">Sign In</a></li>
+                                                <li><i class="fa fa-chevron-right"></i><a href="https://sentinel.gujarat.gov.in/faqs">FAQs</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-6">
+                    <h6>Important Dates</h6>
+                    <ul>
+                        <li><i class="fa fa-calendar-check"></i><span>Registration Open:
+                                4 August 2026</span></li>
+                        <li><i class="fa fa-calendar-check"></i><span>Last Date:
+                                07 September 2026</span></li>
+                        <li><i class="fa fa-calendar-check"></i><span>Shortlisting:
+                                7 September 2026 Evening</span></li>
+                        <li><i class="fa fa-calendar-check"></i><span>Event:
+                                10–11 September 2026</span></li>
+                        <li><i class="fa fa-calendar-check"></i><span>Results:
+                                11 September 2026</span></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <h6>Contact</h6>
+                    <ul>
+                        <li><i
+                                class="fa fa-map-marker-alt"></i><span>State Crime Record Bureau (SCRB), Next to Police Bhawan Sector - 18 Gandhinagar, Gujarat - 382009</span>
+                        </li>
+                        <li><i class="fa fa-phone"></i><a
+                                href="tel:+91 95370 89982">+91 95370 89982</a>
+                        </li>
+                        <li><i class="fa fa-envelope"></i><a
+                                href="mailto:sentinel.hackathon@gujarat.gov.in">sentinel.hackathon@gujarat.gov.in</a>
+                        </li>
+                        <li><i class="fa fa-globe"></i><a href="https://gujhome.gujarat.gov.in"
+                                target="_blank">https://gujhome.gujarat.gov.in</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="scrb-banner-bar mt-4 py-2.5 text-center"
+            style="background: #ffffff; color: #000000; width: 100%; border-radius: 0;">
+            <span
+                style="font-weight: 800; font-size: 1.25rem; color: #000000; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 10px;">
+                <i class="fa fa-shield-alt" style="color: var(--accent); font-size: 1.15rem;"></i> State Crime Record
+                Bureau
+            </span>
+        </div>
+
+        <div class="container-fluid px-4">
+            <div class="footer-bottom d-flex justify-content-between flex-wrap gap-2 pt-1 pb-3"
+                style="margin-top: 0; padding-top: 2px;">
+                <span>© 2026 Gujarat Police Innovation Hackathon. All Rights Reserved. | Government of Gujarat</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://sentinel.gujarat.gov.in/public/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Navbar scroll effect
+        const nav = document.getElementById('siteNav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('scrolled', window.scrollY > 20);
+        });
+    </script>
+    
+    <script>
+        (function() {
+            let deadlineStr =
+                '2026-09-06';
+            const monthMap = {
+                January: '01',
+                February: '02',
+                March: '03',
+                April: '04',
+                May: '05',
+                June: '06',
+                July: '07',
+                August: '08',
+                September: '09',
+                October: '10',
+                November: '11',
+                December: '12'
+            };
+            deadlineStr = deadlineStr.replace(
+                /(\d{1,2})\s+([A-Za-z]+),?\s+(\d{4})/,
+                (_, d, m, y) => `${y}-${monthMap[m] || '08'}-${d.padStart(2,'0')}T23:59:59`
+            );
+            let deadline = new Date(deadlineStr).getTime();
+            if (isNaN(deadline)) deadline = new Date('2026-08-31T23:59:59').getTime();
+
+            function gcdTick() {
+                const diff = deadline - Date.now();
+                const ids = ['gcd-days', 'gcd-hours', 'gcd-mins', 'gcd-secs'];
+                if (diff <= 0) {
+                    ids.forEach(id => {
+                        const el = document.getElementById(id);
+                        if (el) el.textContent = '00';
+                    });
+                    return;
+                }
+                const vals = [
+                    Math.floor(diff / 86400000),
+                    Math.floor((diff % 86400000) / 3600000),
+                    Math.floor((diff % 3600000) / 60000),
+                    Math.floor((diff % 60000) / 1000)
+                ];
+                ids.forEach((id, i) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = String(vals[i]).padStart(2, '0');
+                });
+            }
+            gcdTick();
+            setInterval(gcdTick, 1000);
+        })();
+    </script>
+    
+    </div><!-- end hc-wrap -->
+
+    
+    <button id="acc-toggle" onclick="document.getElementById('acc-panel').classList.toggle('open')"
+        aria-label="Accessibility options" title="Accessibility">
+        <i class="fa fa-universal-access" style="font-size:1.1rem;"></i>
+        <span>A11Y</span>
+    </button>
+
+    <div id="acc-panel" role="region" aria-label="Accessibility toolbar">
+        <div class="acc-title"><i class="fa fa-universal-access"></i> Accessibility</div>
+
+        
+        <div style="font-size:0.7rem;color:var(--muted);margin-bottom:6px;font-weight:600;">FONT SIZE</div>
+        <div class="acc-font-row">
+            <button class="acc-btn" id="acc-a-plus" onclick="accFontSize(1)" title="Increase font size"><i
+                    class="fa fa-plus"></i> A+</button>
+            <button class="acc-btn" id="acc-a-minus" onclick="accFontSize(-1)" title="Decrease font size"><i
+                    class="fa fa-minus"></i> A-</button>
+        </div>
+
+        
+        <div style="font-size:0.7rem;color:var(--muted);margin:10px 0 6px;font-weight:600;">DISPLAY</div>
+        <button class="acc-btn" id="acc-contrast-btn" onclick="accToggle('acc-contrast','acc-contrast-btn')">
+            <i class="fa fa-adjust"></i> High Contrast
+        </button>
+
+        
+        <button class="acc-btn" id="acc-dyslexia-btn" onclick="accToggle('acc-dyslexia','acc-dyslexia-btn')">
+            <i class="fa fa-font"></i> Dyslexia Font
+        </button>
+
+        
+        <div style="font-size:0.7rem;color:var(--muted);margin:10px 0 6px;font-weight:600;">AUDIO</div>
+        <button class="acc-btn" id="acc-tts-btn" onclick="accTTS()">
+            <i class="fa fa-volume-up"></i> <span id="acc-tts-label">Listen to Page</span>
+        </button>
+
+        
+        <button class="acc-btn" onclick="accReset()"
+            style="margin-top:10px;border-color:#ef4444;color:#ef4444;background:#fef2f2;">
+            <i class="fa fa-undo"></i> Reset All
+        </button>
+    </div>
+
+    <script>
+        // ── Font size ──
+        let accFontLevel = parseInt(localStorage.getItem('acc-font') || '0');
+        applyFont();
+
+        function applyFont() {
+            document.documentElement.style.fontSize = (16 + accFontLevel * 2) + 'px';
+            localStorage.setItem('acc-font', accFontLevel);
+        }
+
+        function accFontSize(dir) {
+            accFontLevel = Math.max(-3, Math.min(5, accFontLevel + dir));
+            applyFont();
+        }
+
+        // ── Toggle class on body ──
+        function accToggle(bodyClass, btnId) {
+            document.body.classList.toggle(bodyClass);
+            const btn = document.getElementById(btnId);
+            btn.classList.toggle('active');
+            localStorage.setItem(bodyClass, document.body.classList.contains(bodyClass) ? '1' : '0');
+            console.log('Toggled', bodyClass, 'active:', btn.classList.contains('active'));
+        }
+
+        // ── Restore persisted states ──
+        if (localStorage.getItem('acc-contrast') === '1') {
+            document.body.classList.add('acc-contrast');
+            document.getElementById('acc-contrast-btn').classList.add('active');
+        }
+        if (localStorage.getItem('acc-dyslexia') === '1') {
+            document.body.classList.add('acc-dyslexia');
+            document.getElementById('acc-dyslexia-btn').classList.add('active');
+        }
+
+        // ── Text-to-Speech ──
+        let ttsUtterance = null;
+
+        function accTTS() {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                document.getElementById('acc-tts-label').textContent = 'Listen to Page';
+                document.getElementById('acc-tts-btn').classList.remove('active');
+                return;
+            }
+            const text = document.querySelector('main').innerText.replace(/\s+/g, ' ').trim();
+            ttsUtterance = new SpeechSynthesisUtterance(text);
+            ttsUtterance.lang = 'en-IN';
+            ttsUtterance.rate = 0.95;
+            ttsUtterance.onend = () => {
+                document.getElementById('acc-tts-label').textContent = 'Listen to Page';
+                document.getElementById('acc-tts-btn').classList.remove('active');
+            };
+            window.speechSynthesis.speak(ttsUtterance);
+            document.getElementById('acc-tts-label').textContent = 'Stop Listening';
+            document.getElementById('acc-tts-btn').classList.add('active');
+        }
+
+        // ── Reset all ──
+        function accReset() {
+            accFontLevel = 0;
+            applyFont();
+            ['acc-contrast', 'acc-dyslexia'].forEach(c => {
+                document.body.classList.remove(c);
+                localStorage.removeItem(c);
+            });
+            document.getElementById('acc-contrast').classList.remove('active');
+            document.getElementById('acc-dyslexia-btn').classList.remove('active');
+            if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+            document.getElementById('acc-tts-label').textContent = 'Listen to Page';
+            document.getElementById('acc-tts-btn').classList.remove('active');
+        }
+
+        // ── Close panel on outside click ──
+        document.addEventListener('click', e => {
+            const panel = document.getElementById('acc-panel');
+            const toggle = document.getElementById('acc-toggle');
+            if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+                panel.classList.remove('open');
+            }
+        });
+    </script>
+
+    
+    
+    
+    <style>
+        #chatbot-btn {
+            position: fixed;
+            bottom: 28px;
+            left: 28px;
+            z-index: 1100;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0a1628, #0f2d5e);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(10, 22, 40, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            transition: all 0.25s;
+        }
+
+        #chatbot-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 28px rgba(10, 22, 40, 0.5);
+        }
+
+        .chat-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FF6B00;
+            font-size: 0.58rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #fff;
+            color: #fff;
+        }
+
+        #chatbot-box {
+            position: fixed;
+            bottom: 96px;
+            left: 28px;
+            z-index: 1100;
+            width: 360px;
+            max-width: calc(100vw - 40px);
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        #chatbot-box.open {
+            display: flex;
+            animation: chatSlideUp 0.25s ease;
+        }
+
+        @keyframes chatSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #0a1628, #0f2d5e);
+            color: #fff;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-header-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: rgba(255, 107, 0, 0.25);
+            border: 2px solid rgba(255, 107, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .chat-header-info {
+            flex: 1;
+        }
+
+        .chat-header-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
+        .chat-header-sub {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .chat-close-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .chat-close-btn:hover {
+            color: #fff;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px;
+            max-height: 320px;
+            min-height: 180px;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        .cmsg {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .cmsg.user {
+            flex-direction: row-reverse;
+        }
+
+        .cmsg-bubble {
+            max-width: 82%;
+            padding: 9px 13px;
+            border-radius: 14px;
+            font-size: 0.81rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .cmsg.bot .cmsg-bubble {
+            background: #fff;
+            color: #0f172a;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .cmsg.user .cmsg-bubble {
+            background: linear-gradient(135deg, #0f2d5e, #1a3a6b);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .cmsg-avatar {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #0f2d5e;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            flex-shrink: 0;
+        }
+
+        .cmsg.user .cmsg-avatar {
+            background: #FF6B00;
+        }
+
+        .chat-suggestions {
+            padding: 8px 12px 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            background: #f8fafc;
+        }
+
+        .chat-chip {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            padding: 4px 11px;
+            font-size: 0.73rem;
+            color: #0f2d5e;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .chat-chip:hover {
+            background: #0f2d5e;
+            color: #fff;
+            border-color: #0f2d5e;
+        }
+
+        .chat-input-wrap {
+            padding: 10px 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            border-top: 1px solid #e2e8f0;
+            background: #fff;
+        }
+
+        .chat-text-input {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 7px 14px;
+            font-size: 0.83rem;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.2s;
+        }
+
+        .chat-text-input:focus {
+            border-color: #0f2d5e;
+        }
+
+        .chat-send-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #0f2d5e;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .chat-send-btn:hover {
+            background: #0a1628;
+            transform: scale(1.05);
+        }
+
+        .typing-wrap {
+            display: flex;
+            gap: 4px;
+            padding: 6px 10px;
+        }
+
+        .typing-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #94a3b8;
+            animation: tdot 1.2s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s
+        }
+
+        @keyframes tdot {
+
+            0%,
+            60%,
+            100% {
+                transform: translateY(0)
+            }
+
+            30% {
+                transform: translateY(-6px)
+            }
+        }
+
+        .cmsg-bubble a {
+            color: #FF6B00;
+            font-weight: 600;
+        }
+
+        .cmsg.user .cmsg-bubble a {
+            color: #ffd0a8;
+        }
+
+        @media(max-width:480px) {
+            #chatbot-box {
+                width: calc(100vw - 20px);
+                left: 10px;
+            }
+
+            #chatbot-btn {
+                bottom: 16px;
+                left: 16px;
+            }
+        }
+    </style>
+
+    <button id="chatbot-btn" onclick="gpChatToggle()" title="AI Hackathon Assistant">
+        <i class="fa fa-robot" id="gp-chat-icon"></i>
+        <span class="chat-badge">AI</span>
+    </button>
+
+    <div id="chatbot-box">
+        <div class="chat-header">
+            <div class="chat-header-avatar"><i class="fa fa-robot"></i></div>
+            <div class="chat-header-info">
+                <div class="chat-header-title">AI Hackathon Assistant</div>
+                <div class="chat-header-sub">🟢 Online — Ask me anything</div>
+            </div>
+            <button class="chat-close-btn" onclick="gpChatToggle()"><i class="fa fa-times"></i></button>
+        </div>
+
+        <div class="chat-messages" id="gpChatMsgs">
+            <div class="cmsg bot">
+                <div class="cmsg-avatar"><i class="fa fa-robot"></i></div>
+                <div class="cmsg-bubble">👋 Hello! I'm your <strong>Gujarat Police Hackathon Assistant</strong>.
+
+                    How can I help you today?</div>
+            </div>
+        </div>
+
+        <div class="chat-suggestions" id="gpChatChips">
+            <span class="chat-chip" onclick="gpSendChip(this)">Which problem should I choose?</span>
+            <span class="chat-chip" onclick="gpSendChip(this)">Explain problem in simple language</span>
+            <span class="chat-chip" onclick="gpSendChip(this)">How to register?</span>
+            <span class="chat-chip" onclick="gpSendChip(this)">Important dates</span>
+            <span class="chat-chip" onclick="gpSendChip(this)">Prize details</span>
+            <span class="chat-chip" onclick="gpSendChip(this)">Show me FAQs</span>
+            <span class="chat-chip" onclick="gpSendChip(this)">Technology stack</span>
+            <span class="chat-chip" onclick="gpSendChip(this)">Registration fee</span>
+        </div>
+
+        <div class="chat-input-wrap">
+            <input type="text" class="chat-text-input" id="gpChatInput" placeholder="Type your question..."
+                onkeydown="if(event.key==='Enter') gpSendMsg()">
+            <button class="chat-send-btn" onclick="gpSendMsg()">
+                <i class="fa fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const _gpCsrf = 'l2ltkfhamFvvAfBUhwEdpDW9Cn2xKDAKGCaQk7qQ';
+
+        function gpChatToggle() {
+            const box = document.getElementById('chatbot-box');
+            const icon = document.getElementById('gp-chat-icon');
+            box.classList.toggle('open');
+            icon.className = box.classList.contains('open') ? 'fa fa-times' : 'fa fa-robot';
+            if (box.classList.contains('open')) document.getElementById('gpChatInput').focus();
+        }
+
+        function gpSendChip(el) {
+            document.getElementById('gpChatInput').value = el.textContent;
+            document.getElementById('gpChatChips').style.display = 'none';
+            gpSendMsg();
+        }
+
+        async function gpSendMsg() {
+            const input = document.getElementById('gpChatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            gpAppendMsg(msg, 'user');
+            input.value = '';
+            const typing = gpAppendTyping();
+            try {
+                const res = await fetch('https://sentinel.gujarat.gov.in/chatbot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': _gpCsrf
+                    },
+                    body: JSON.stringify({
+                        message: msg
+                    })
+                });
+                const data = await res.json();
+                typing.remove();
+                gpAppendMsg(data.reply, 'bot');
+            } catch (e) {
+                typing.remove();
+                gpAppendMsg('Sorry, something went wrong. Please try again.', 'bot');
+            }
+        }
+
+        function gpAppendMsg(text, role) {
+            const msgs = document.getElementById('gpChatMsgs');
+            const div = document.createElement('div');
+            div.className = 'cmsg ' + role;
+            const av = document.createElement('div');
+            av.className = 'cmsg-avatar';
+            av.innerHTML = role === 'bot' ? '<i class="fa fa-robot"></i>' : '<i class="fa fa-user"></i>';
+            const bub = document.createElement('div');
+            bub.className = 'cmsg-bubble';
+            if (role === 'user') {
+                bub.textContent = text;
+            } else {
+                bub.textContent = text;
+            }
+            div.appendChild(av);
+            div.appendChild(bub);
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+            return div;
+        }
+
+        function gpAppendTyping() {
+            const msgs = document.getElementById('gpChatMsgs');
+            const div = document.createElement('div');
+            div.className = 'cmsg bot';
+            div.innerHTML =
+                '<div class="cmsg-avatar"><i class="fa fa-robot"></i></div><div class="cmsg-bubble"><div class="typing-wrap"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>';
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+            return div;
+        }
+    </script>
+    <script>
+        // Back-button guard: if this page is served from bfcache after logout,
+        // force a reload so the server auth check runs and redirects to /login.
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                window.location.reload();
+            }
+        });
+
+        // Auto-dismiss alert pop-up boxes after 3 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                document.querySelectorAll('.alert.alert-dismissible').forEach(function(alertEl) {
+                    try {
+                        if (typeof bootstrap !== 'undefined' && bootstrap.Alert) {
+                            var bsAlert = bootstrap.Alert.getOrCreateInstance(alertEl);
+                            bsAlert.close();
+                        } else {
+                            alertEl.classList.remove('show');
+                            setTimeout(function() {
+                                if (alertEl.parentNode) alertEl.parentNode.removeChild(alertEl);
+                            }, 300);
+                        }
+                    } catch(e) {}
+                });
+            }, 3000);
+        });
+    </script>
+
+    
+    <div id="prizeUpgradeOverlay" class="pum-overlay" role="dialog" aria-modal="true" aria-labelledby="pumTitle">
+    
+    <canvas id="pumConfettiCanvas" class="pum-confetti-canvas"></canvas>
+
+    <div class="pum-modal">
+        
+        <button type="button" class="pum-close-btn" id="pumCloseBtn" aria-label="Close">
+            <i class="fa fa-xmark"></i>
+        </button>
+
+        
+        <div class="pum-ambient-glow"></div>
+
+        <div class="pum-content">
+            
+            <div class="pum-trophy-badge">
+                <div class="pum-trophy-ring"></div>
+                <i class="fa fa-trophy"></i>
+            </div>
+
+            
+            <div class="pum-eyebrow">
+                <span class="pum-dot"></span>
+                <span>PRIZE POOL EXPANDED</span>
+            </div>
+
+            
+            <h2 id="pumTitle" class="pum-main-title">
+                Revised Total Prize Pool
+            </h2>
+
+            <div class="pum-price-upgrade">
+                <div class="pum-old-price">₹ 37,00,000</div>
+                <div class="pum-arrow"><i class="fa fa-arrow-right"></i></div>
+                <div class="pum-new-price">₹ 51,00,000</div>
+            </div>
+
+            
+            <p class="pum-desc">
+                Compete for rewards across Phase 1 Sandbox &amp; Phase 2 Grand Finale in Gujarat's premier policing hackathon.
+            </p>
+
+            
+            <div class="pum-actions">
+                <a href="https://sentinel.gujarat.gov.in/phases" class="pum-btn-primary" id="pumViewPrizesBtn">
+                    <span>View Prize Breakdown</span>
+                    <i class="fa fa-arrow-right"></i>
+                </a>
+            </div>
+
+            
+            <div class="pum-dismiss-wrap">
+                <button type="button" class="pum-dismiss-link" id="pumDismissBtn">
+                    Continue to Website
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ════════════════════════════════════════════════════════════
+       💎 MINIMALIST LUXURY MODAL STYLES
+       ════════════════════════════════════════════════════════════ */
+    .pum-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 999999;
+        background: rgba(4, 10, 22, 0.78);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .pum-overlay.pum-active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .pum-confetti-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .pum-modal {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        max-width: 460px;
+        background: linear-gradient(170deg, #0e2242 0%, #0a1628 55%, #050d18 100%);
+        border: 1.5px solid rgba(255, 107, 0, 0.38);
+        border-radius: 24px;
+        box-shadow: 0 30px 80px -15px rgba(0, 0, 0, 0.85),
+                    0 0 45px rgba(255, 107, 0, 0.2),
+                    inset 0 1px 1px rgba(255, 255, 255, 0.2);
+        color: #ffffff;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        overflow: hidden;
+        transform: scale(0.9) translateY(16px);
+        opacity: 0;
+        transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+
+    .pum-overlay.pum-active .pum-modal {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+    }
+
+    .pum-ambient-glow {
+        position: absolute;
+        top: -90px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 260px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255, 107, 0, 0.35) 0%, rgba(255, 170, 0, 0.1) 50%, transparent 70%);
+        pointer-events: none;
+        border-radius: 50%;
+    }
+
+    .pum-close-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        color: rgba(255, 255, 255, 0.65);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 10;
+    }
+
+    .pum-close-btn:hover {
+        background: rgba(255, 107, 0, 0.2);
+        border-color: #FF6B00;
+        color: #ffffff;
+        transform: rotate(90deg) scale(1.06);
+    }
+
+    .pum-content {
+        position: relative;
+        z-index: 2;
+        padding: 34px 28px 24px;
+        text-align: center;
+    }
+
+    /* Trophy Icon Badge */
+    .pum-trophy-badge {
+        position: relative;
+        width: 58px;
+        height: 58px;
+        margin: 0 auto 16px;
+        background: linear-gradient(135deg, #FF8A3D 0%, #FF6B00 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        color: #ffffff;
+        box-shadow: 0 10px 25px rgba(255, 107, 0, 0.4);
+    }
+
+    .pum-trophy-ring {
+        position: absolute;
+        inset: -5px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255, 107, 0, 0.45);
+        animation: pumRingPulse 2s infinite ease-out;
+    }
+
+    @keyframes pumRingPulse {
+        0% { transform: scale(0.95); opacity: 0.8; }
+        50% { transform: scale(1.15); opacity: 0.2; }
+        100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    /* Eyebrow badge */
+    .pum-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255, 107, 0, 0.12);
+        border: 1px solid rgba(255, 107, 0, 0.3);
+        color: #ff9e40;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        border-radius: 100px;
+        margin-bottom: 10px;
+    }
+
+    .pum-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #FF6B00;
+        box-shadow: 0 0 8px #FF6B00;
+    }
+
+    .pum-main-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.85);
+        margin: 0 0 14px;
+        letter-spacing: -0.2px;
+    }
+
+    /* Price Upgrade Hero Pill */
+    .pum-price-upgrade {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 16px;
+        padding: 12px 18px;
+        margin: 0 auto 16px;
+        width: fit-content;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .pum-old-price {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.4);
+        text-decoration: line-through;
+        text-decoration-color: #ef4444;
+        text-decoration-thickness: 2px;
+        white-space: nowrap;
+    }
+
+    .pum-arrow {
+        color: #ff9e40;
+        font-size: 0.95rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .pum-new-price {
+        font-size: 1.75rem;
+        font-weight: 900;
+        background: linear-gradient(135deg, #ffffff 0%, #ffc085 40%, #ff6b00 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    /* Description */
+    .pum-desc {
+        font-size: 0.86rem;
+        color: rgba(255, 255, 255, 0.7);
+        line-height: 1.55;
+        margin: 0 auto 20px;
+        max-width: 360px;
+    }
+
+    /* Action Buttons */
+    .pum-actions {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 12px;
+    }
+
+    .pum-btn-primary {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 340px;
+        padding: 13px 24px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #ff8a3d 0%, #FF6B00 100%);
+        color: #ffffff !important;
+        font-size: 0.95rem;
+        font-weight: 800;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        box-shadow: 0 8px 24px rgba(255, 107, 0, 0.45);
+        border: none;
+    }
+
+    .pum-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(255, 107, 0, 0.6);
+        background: linear-gradient(135deg, #ffa05c 0%, #ff7919 100%);
+        color: #ffffff !important;
+    }
+
+    .pum-btn-primary i {
+        transition: transform 0.2s ease;
+    }
+
+    .pum-btn-primary:hover i {
+        transform: translateX(4px);
+    }
+
+    /* Dismiss link */
+    .pum-dismiss-wrap {
+        margin-top: 4px;
+    }
+
+    .pum-dismiss-link {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        padding: 4px 8px;
+    }
+
+    .pum-dismiss-link:hover {
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: underline;
+    }
+
+    /* Floating trigger pill (Bottom-Right) */
+    .pum-floating-pill {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        left: auto;
+        z-index: 99998;
+        background: linear-gradient(135deg, #0b192e 0%, #152742 100%);
+        border: 1.5px solid rgba(255, 107, 0, 0.5);
+        color: #ffffff;
+        padding: 9px 18px;
+        border-radius: 50px;
+        font-size: 0.82rem;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 16px rgba(255, 107, 0, 0.25);
+        cursor: pointer;
+        transition: all 0.25s ease;
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .pum-floating-pill:hover {
+        transform: translateY(-3px) scale(1.03);
+        border-color: #FF6B00;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 24px rgba(255, 107, 0, 0.45);
+        color: #ff9e40;
+    }
+
+    @media (max-width: 575px) {
+        .pum-floating-pill {
+            bottom: 16px;
+            right: 16px;
+            left: auto;
+            padding: 7px 14px;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+
+
+<button type="button" class="pum-floating-pill" id="pumFloatingPill" onclick="window.openPrizeModal()" title="View Prize Upgrade Announcement">
+    <i class="fa fa-trophy" style="color:#f59e0b;"></i>
+    <span>Prize Pool: ₹ 51 Lakhs</span>
+</button>
+
+<script>
+    (function() {
+        const STORAGE_KEY = 'gp_prize_upgrade_shown_once_51L';
+        const overlay = document.getElementById('prizeUpgradeOverlay');
+        const closeBtn = document.getElementById('pumCloseBtn');
+        const dismissBtn = document.getElementById('pumDismissBtn');
+        const canvas = document.getElementById('pumConfettiCanvas');
+        let autoCloseTimer = null;
+
+        if (!overlay) return;
+
+        function startAutoCloseTimer(duration = 2800) {
+            clearTimeout(autoCloseTimer);
+            autoCloseTimer = setTimeout(function() {
+                closeModal();
+            }, duration);
+        }
+
+        function openModal() {
+            setTimeout(function() {
+                overlay.classList.add('pum-active');
+                document.body.style.overflow = 'hidden';
+                launchConfetti();
+                try {
+                    sessionStorage.setItem(STORAGE_KEY, 'true');
+                } catch (e) {}
+
+                // Automatically close the popup box after 2-3 seconds
+                startAutoCloseTimer(2800);
+            }, 350);
+        }
+
+        function closeModal() {
+            clearTimeout(autoCloseTimer);
+            overlay.classList.remove('pum-active');
+            document.body.style.overflow = '';
+            try {
+                sessionStorage.setItem(STORAGE_KEY, 'true');
+            } catch (e) {}
+        }
+
+        window.openPrizeModal = function() {
+            overlay.classList.add('pum-active');
+            document.body.style.overflow = 'hidden';
+            launchConfetti();
+            startAutoCloseTimer(2800);
+        };
+        window.closePrizeModal = closeModal;
+
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+        if (dismissBtn) dismissBtn.addEventListener('click', closeModal);
+
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) closeModal();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && overlay.classList.contains('pum-active')) {
+                closeModal();
+            }
+        });
+
+        // ONLY show on initial entrance to website (once per browser session)
+        try {
+            if (!sessionStorage.getItem(STORAGE_KEY)) {
+                openModal();
+            }
+        } catch (e) {}
+
+        // Lightweight Confetti
+        function launchConfetti() {
+            if (!canvas) return;
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            const ctx = canvas.getContext('2d');
+            let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+            function resize() {
+                const r = overlay.getBoundingClientRect();
+                canvas.width = Math.round(r.width * dpr);
+                canvas.height = Math.round(r.height * dpr);
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            }
+            resize();
+
+            const COLORS = ['#FF6B00', '#FF9E40', '#FFD700', '#fbbf24', '#ffffff'];
+            const count = 75;
+            const particles = [];
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2 - 30;
+
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 3 + Math.random() * 7;
+                particles.push({
+                    x: cx,
+                    y: cy,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 2.5,
+                    size: 4 + Math.random() * 4,
+                    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                    alpha: 1,
+                    decay: 0.014 + Math.random() * 0.016,
+                    rotation: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 6
+                });
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+                let alive = false;
+
+                for (let i = 0; i < particles.length; i++) {
+                    const p = particles[i];
+                    if (p.alpha <= 0) continue;
+                    alive = true;
+
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.18;
+                    p.vx *= 0.98;
+                    p.alpha -= p.decay;
+                    p.rotation += p.rotSpeed;
+
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate((p.rotation * Math.PI) / 180);
+                    ctx.globalAlpha = Math.max(0, p.alpha);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+                    ctx.restore();
+                }
+
+                if (alive && overlay.classList.contains('pum-active')) {
+                    requestAnimationFrame(render);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+                }
+            }
+
+            render();
+        }
+    })();
+</script>
+
+</body>
+
+</html>

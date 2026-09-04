@@ -1,0 +1,95 @@
+# ==============================================================================
+# Sentinel C4i — Gujarat Police AI Surveillance System Git Ignore
+# ==============================================================================
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Node.js / Frontend Builds
+node_modules/
+dist/
+build/
+.npm/
+.eslintcache
+sentinel/node_modules/
+sentinel/dist/
+sentinel/build/
+
+# Python, Bytecode & Caching
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+.coverage
+htmlcov/
+*.part
+
+# Environment, Secrets, Tokens & Cookies (CRITICAL: Never commit to Git)
+.env
+.env.*
+*.env
+enc.key
+*.key
+*.pem
+cookies.txt
+live_cookies.txt
+new_cookies.txt
+*cookies*.txt
+
+# Databases, SQLite Wal & Local Cache
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+sentinel.db*
+sentinel_cctv.db*
+backend1/sentinel.db*
+backend/sentinel.db*
+
+# Video Media & Captured Footage
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+backend1/videos/
+backend/traffic*.mp4
+backend1/real_cam2_cctv.mp4
+
+# High-Volume Image Datasets & Harvested CCTV Snapshots (5GB+ binary files)
+backend1/harvested_cctv_frames/
+backend1/harvested_cctv_frames.zip
+backend1/snapshots/
+backend1/datasets/
+backend1/dataset/
+backend1/dataset_raw/
+backend1/sam_generated_dataset/
+SENTINEL_MEGA_GUJARAT_TRAFFIC_DATASET/
+SENTINEL_MEGA_GUJARAT_TRAFFIC_DATASET.zip
+SCALED_GUJARAT_TRAFFIC_DATASET.zip
+gujarat_cctv_sample_for_roboflow.zip
+backend1/gujarat_cctv_dataset*.zip
+backend1/gujarat_sam_traffic_dataset.zip
+backend1/gujarat_cctv_live_dataset.zip
+
+# Model Checkpoints & Large Weights (>25MB exceeds standard GitHub repos)
+runs/
+backend1/runs/
+*.pt.part
+*.part
+*.pt
+!backend1/models/sentinel_indian_traffic_best.pt
+!backend1/models/indian_plate_best.pt
+
+# Local IDE Cache
+.vscode/
+.idea/
+.claude/
