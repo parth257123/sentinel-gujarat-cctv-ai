@@ -49,7 +49,7 @@ def train_active_learning():
         cls=1.5,
         dfl=1.5,
         project=RUNS_DIR,
-        name="gujarat_active_v1",
+        name="gujarat_active_v2",
         exist_ok=True,
         verbose=True
     )
@@ -58,12 +58,12 @@ def train_active_learning():
     print(f"\n⏱️ Training finished in {elapsed:.1f} seconds ({elapsed/60:.1f} minutes)!")
 
     # Locate best weights
-    best_weights = os.path.join(RUNS_DIR, "gujarat_active_v1", "weights", "best.pt")
+    best_weights = os.path.join(RUNS_DIR, "gujarat_active_v2", "weights", "best.pt")
     if os.path.exists(best_weights):
         target_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best.pt")
-        backup_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best_backup_v1.pt")
+        backup_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best_v1.pt")
 
-        if os.path.exists(target_model_path) and not os.path.exists(backup_model_path):
+        if os.path.exists(target_model_path):
             shutil.copy(target_model_path, backup_model_path)
             print(f"📦 Backed up previous weights to {os.path.basename(backup_model_path)}")
 
