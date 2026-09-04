@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Tag, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, 
   Trash2, Save, RefreshCw, Eye, Database, Layers, Plus, HelpCircle
@@ -81,7 +81,7 @@ export function AnnotationStudioPage() {
   const loadFramesAndStats = async () => {
     try {
       const [framesRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/annotation/frames?limit=200`).then(r => r.json()),
+        fetch(`${API_BASE}/api/annotation/frames?limit=5000`).then(r => r.json()),
         fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json())
       ]);
       setFrames(framesRes);
@@ -263,6 +263,9 @@ export function AnnotationStudioPage() {
   });
 
   const uniqueCams = Array.from(new Set(frames.map(f => f.cam_id))).sort();
+  const countDay = useMemo(() => frames.filter(f => f.lighting === 'daylight_morning_rush').length, [frames]);
+  const countTwi = useMemo(() => frames.filter(f => f.lighting === 'twilight_dawn_dusk').length, [frames]);
+  const countNight = useMemo(() => frames.filter(f => f.lighting === 'night_sodium_lighting').length, [frames]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 75px)', background: '#0a0d14', color: '#e2e8f0', fontFamily: 'Inter, sans-serif' }}>
@@ -364,10 +367,10 @@ export function AnnotationStudioPage() {
                 padding: '6px 8px', borderRadius: '6px', fontSize: '11px', outline: 'none', marginTop: '6px'
               }}
             >
-              <option value="all">All Lighting Conditions</option>
-              <option value="daylight_morning_rush">☀️ Daylight &amp; Morning Rush</option>
-              <option value="twilight_dawn_dusk">🌆 Twilight &amp; Dawn/Dusk</option>
-              <option value="night_sodium_lighting">🌙 Night Sodium &amp; Glare</option>
+              <option value="all">All Lighting Conditions ({frames.length})</option>
+              <option value="daylight_morning_rush">☀️ Daylight &amp; Morning Rush ({countDay})</option>
+              <option value="twilight_dawn_dusk">🌆 Twilight &amp; Dawn/Dusk ({countTwi})</option>
+              <option value="night_sodium_lighting">🌙 Night Sodium &amp; Glare ({countNight})</option>
             </select>
           </div>
 
