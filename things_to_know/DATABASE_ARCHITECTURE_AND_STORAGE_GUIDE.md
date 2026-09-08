@@ -45,7 +45,7 @@ For every vehicle detected in a camera frame, the system extracts and stores:
 | `plate` | `VARCHAR(16)` | `GJ-01-AB-1234` | Primary ANPR registration identifier |
 | `plate_status` | `VARCHAR(16)` | `CONFIRMED` / `UNREADABLE` | OCR certainty state |
 | `confidence` | `FLOAT` | `88.5` | OCR neural confidence percentage |
-| `vehicle_type` | `VARCHAR(32)` | `Auto-Rickshaw`, `Car`, `Truck` | Indian traffic vehicle classification |
+| `vehicle_type` | `VARCHAR(32)` | `Auto`, `Car`, `Passenger Vehicle`, `Goods Vehicle`, `Two-Wheeler`, `Others` | Indian traffic vehicle classification |
 | `color` | `VARCHAR(16)` | `White`, `Silver`, `Red`, `Black` | Dominant HSV vehicle body color |
 | `speed_kmh` | `FLOAT` | `64.2` | Perspective-calibrated Doppler speed |
 | `camera_id` | `VARCHAR(16)` | `cam04` | Camera junction identifier |

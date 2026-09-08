@@ -75,10 +75,25 @@ backend1/sam_generated_dataset/
 SENTINEL_MEGA_GUJARAT_TRAFFIC_DATASET/
 SENTINEL_MEGA_GUJARAT_TRAFFIC_DATASET.zip
 SCALED_GUJARAT_TRAFFIC_DATASET.zip
+SENTINEL_10CLASS_GUJARAT_TRAFFIC_DATASET.zip
+HEAVYWEIGHT_GUJARAT_TRAFFIC_DATASET_5500.zip
+NIGHT_FRAMES_AFTER_730PM.zip
+NIGHT_SODIUM_LIGHTING_845_FRAMES.zip
+UNIQUE_GUJARAT_TRAFFIC_DATASET.zip
+backend1/curated_by_lighting/
 gujarat_cctv_sample_for_roboflow.zip
 backend1/gujarat_cctv_dataset*.zip
 backend1/gujarat_sam_traffic_dataset.zip
 backend1/gujarat_cctv_live_dataset.zip
+*.ts
+backend1/*.jpg
+*.jpg
+*.png
+
+# Whitelist Sample 10-Class Dataset & Zip for GitHub Repo
+!sample_dataset_10class/**
+!SENTINEL_10CLASS_CCTV_DATASET_SAMPLE.zip
+
 
 # Model Checkpoints & Large Weights (>25MB exceeds standard GitHub repos)
 runs/

@@ -1,0 +1,10 @@
+pedestrian
+car
+two_wheeler
+heavy_machinery
+emergency_vehicle
+van
+truck
+bus
+auto_rickshaw
+others

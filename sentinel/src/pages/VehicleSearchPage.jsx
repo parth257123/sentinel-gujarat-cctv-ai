@@ -586,7 +586,7 @@ export function VehicleSearchPage({ cameras, detections }) {
               <div style={{ flex: 1, position: 'relative' }}>
                 <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#64748b' }} />
                 <input 
-                  placeholder="Enter registration plate (e.g. GJ 06 GH 3963, GJ 01, etc.)"
+                  placeholder="Search by Plate, Company, or Model (e.g. Fortuner, Creta, Scorpio, Thar, GJ 01 AB 1234)..."
                   value={plateQuery}
                   onChange={e => setPlateQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -602,30 +602,35 @@ export function VehicleSearchPage({ cameras, detections }) {
               </button>
             </div>
 
-            {/* Quick search chips */}
+            {/* Quick search chips for popular Indian vehicle models */}
             <div style={{ display: 'flex', gap: 6, marginTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, marginRight: 4 }}>Verified Multi-Camera Trails:</span>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, marginRight: 4 }}>Quick Model / Company Filter:</span>
               {[
-                { label: 'GJ-18-DJ-7419 (3 Sightings across Districts)', plate: 'GJ-18-DJ-7419' },
-                { label: 'GJ-27-FM-2272 (Ahmedabad ➔ Navsari)', plate: 'GJ-27-FM-2272' },
-                { label: 'GJ-01-BR-1038 (Ahmedabad ➔ Junagadh)', plate: 'GJ-01-BR-1038' },
-                { label: 'GJ-03-EK-5683 (Junagadh Grid)', plate: 'GJ-03-EK-5683' }
+                { label: 'Toyota Fortuner', query: 'Fortuner' },
+                { label: 'Mahindra Scorpio-N', query: 'Scorpio' },
+                { label: 'Hyundai Creta', query: 'Creta' },
+                { label: 'Mahindra Thar', query: 'Thar' },
+                { label: 'Toyota Innova Crysta', query: 'Innova' },
+                { label: 'Maruti Suzuki Swift', query: 'Swift' },
+                { label: 'Tata Nexon', query: 'Nexon' },
+                { label: 'GJ-01-AB-1234 (Ahmedabad)', query: 'GJ01AB1234' }
               ].map(item => (
                 <button 
-                  key={item.plate} 
-                  onClick={() => handleTrackPlate(item.plate)} 
+                  key={item.label} 
+                  onClick={() => handleTrackPlate(item.query)} 
                   style={{ 
-                    background: 'rgba(59,130,246,0.15)', 
+                    background: plateQuery.toUpperCase() === item.query.toUpperCase() ? 'linear-gradient(135deg, #2563eb, #3b82f6)' : 'rgba(59,130,246,0.15)', 
                     border: '1px solid rgba(59,130,246,0.4)', 
                     borderRadius: 6, 
                     padding: '4px 10px', 
                     fontSize: 11, 
-                    color: '#93c5fd', 
+                    color: plateQuery.toUpperCase() === item.query.toUpperCase() ? '#ffffff' : '#93c5fd', 
                     cursor: 'pointer', 
                     fontWeight: 700,
                     transition: 'all 0.15s ease'
                   }}
                 >
+                  <Car size={10} style={{ display: 'inline', marginRight: 4 }} />
                   {item.label}
                 </button>
               ))}
@@ -661,8 +666,17 @@ export function VehicleSearchPage({ cameras, detections }) {
                           {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'N/A'}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6, flexWrap: 'wrap' }}>
                         <PlateBadge plate={entry.plate} />
+                        {(entry.fullName || trackingResult?.fullName) && (
+                          <span style={{ 
+                            fontSize: 11, fontWeight: 800, color: '#38bdf8', 
+                            background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', 
+                            padding: '2px 8px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 
+                          }}>
+                            <Car size={11} /> {entry.fullName || trackingResult?.fullName}
+                          </span>
+                        )}
                         <ColorChip color={entry.color} />
                         <span style={{ fontSize: 11, color: '#94a3b8' }}>{entry.vehicleType}</span>
                         <span style={{ fontSize: 11, color: '#10b981', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>{entry.confidence?.toFixed(1)}% conf</span>
@@ -736,7 +750,18 @@ export function VehicleSearchPage({ cameras, detections }) {
                       <PlateBadge plate={det.plate} />
                       <span style={{ fontSize: 10, color: '#10b981', fontFamily: 'var(--font-mono)' }}>{det.confidence?.toFixed(1)}%</span>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                    {det.fullName && (
+                      <div style={{ marginBottom: 6 }}>
+                        <span style={{ 
+                          fontSize: 11, fontWeight: 800, color: '#38bdf8', 
+                          background: 'rgba(56,189,248,0.12)', border: '1px solid rgba(56,189,248,0.3)', 
+                          padding: '2px 7px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4 
+                        }}>
+                          <Car size={11} /> {det.fullName}
+                        </span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
                       <ColorChip color={det.color} />
                       <span style={{ fontSize: 11, color: '#94a3b8' }}>{det.vehicleType}</span>
                     </div>

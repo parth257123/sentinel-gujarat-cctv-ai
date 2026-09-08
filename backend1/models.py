@@ -12,6 +12,8 @@ class Detection(Base):
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
     confidence = Column(Float)
     vehicle_type = Column(String)
+    make = Column(String, default="Unknown")  # e.g., Toyota, Hyundai, Mahindra, Tata, Maruti Suzuki
+    model = Column(String, default="Vehicle")  # e.g., Fortuner, Creta, Scorpio, Swift, Nexon
     color = Column(String, default="White")
     sharpness = Column(Float, default=0.0)
     embedding = Column(Text, nullable=True)  # JSON-encoded 1024-d ReID vector

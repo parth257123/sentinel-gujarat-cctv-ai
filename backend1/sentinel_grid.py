@@ -13,6 +13,7 @@ import os
 import time
 import math
 import random
+import json
 import requests
 import asyncio
 import logging
@@ -32,87 +33,61 @@ ACTIVE_STREAM_IDS = [6, 13, 14, 16, 26]
 stream_latest_frames = {}
 
 class SentinelGridClient:
-    SENTINEL_HOST = os.environ.get("SENTINEL_HOST", "live.corp8.cloud")
+    SENTINEL_HOST = os.environ.get("SENTINEL_HOST", "cctv.corp8.cloud")
     
     def __init__(self):
         self.cameras = []
         
     def fetch_catalogue(self):
-        """Loads camera registry matching official Gujarat Police RLVD grid."""
+        """Loads camera registry matching official Gujarat Police RLVD grid from cctv.corp8.cloud."""
         try:
-            url = f"https://{self.SENTINEL_HOST}/api/ingest"
-            resp = requests.get(url, timeout=5)
-            if resp.status_code == 200:
-                data = resp.json()
-                raw_cams = data.get("cameras", data if isinstance(data, list) else [])
-                if raw_cams:
-                    self.cameras = self._format_catalogue(raw_cams)
-                    logger.info(f"Loaded {len(self.cameras)} cameras from official Gujarat Police grid at {self.SENTINEL_HOST}")
-                    return self.cameras
+            cached_path = os.path.join(os.path.dirname(__file__), "corp8_cameras.json")
+            if os.path.exists(cached_path):
+                with open(cached_path, "r") as f:
+                    raw_cams = json.load(f)
+                    if raw_cams:
+                        self.cameras = self._format_catalogue(raw_cams)
+                        logger.info(f"Loaded {len(self.cameras)} cameras from official Gujarat Police grid (cctv.corp8.cloud cache)")
+                        return self.cameras
         except Exception as e:
-            logger.warning(f"Could not load catalogue from {self.SENTINEL_HOST}: {e}")
+            logger.warning(f"Could not load catalogue from cache: {e}")
             
         self.cameras = self._generate_fallback_catalogue()
         return self.cameras
 
     def _format_catalogue(self, raw_cams):
-        # Precise GPS coordinates for all 30 CCTV locations across Gujarat State
+        # Official 30 CCTV locations from https://cctv.corp8.cloud/
         cctv_registry_specs = [
-            # 1-5: Ahmedabad City (VISWAS Central Nodes)
-            {"city": "Ahmedabad", "name": "Visat T-Junction RLVD", "lat": 23.0984, "lng": 72.5986, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Ahmedabad", "name": "SG Highway (Pakwan Cross Roads)", "lat": 23.0373, "lng": 72.5120, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Ahmedabad", "name": "Ashram Road (Income Tax Circle)", "lat": 23.0416, "lng": 72.5714, "dept": "State Police HQ", "color": "#ef4444"},
-            {"city": "Ahmedabad", "name": "Paldi Circle Corridor", "lat": 23.0135, "lng": 72.5647, "dept": "Municipal Corp", "color": "#10b981"},
-            {"city": "Ahmedabad", "name": "Kalupur Station Gate", "lat": 23.0270, "lng": 72.6015, "dept": "Railway Police", "color": "#f59e0b"},
-            
-            # 6-8: Gandhinagar Capital Range
-            {"city": "Gandhinagar", "name": "Sector 17 Police Bhawan", "lat": 23.2230, "lng": 72.6492, "dept": "State Police HQ", "color": "#ef4444"},
-            {"city": "Gandhinagar", "name": "Infocity Highway Corridor", "lat": 23.1895, "lng": 72.6288, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Gandhinagar", "name": "CH-0 Highway Circle", "lat": 23.2156, "lng": 72.6369, "dept": "RTO & Transport", "color": "#8b5cf6"},
-            
-            # 9-11: Surat Range
-            {"city": "Surat", "name": "Ring Road (Udhna Darwaja)", "lat": 21.1852, "lng": 72.8360, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Surat", "name": "Athwa Gate Multi-Lane Junction", "lat": 21.1820, "lng": 72.8124, "dept": "State Police HQ", "color": "#ef4444"},
-            {"city": "Surat", "name": "Dumas Road VR Mall Junction", "lat": 21.1448, "lng": 72.7667, "dept": "Municipal Corp", "color": "#10b981"},
-            
-            # 12-14: Vadodara Central Range
-            {"city": "Vadodara", "name": "Alkapuri Central Circle", "lat": 22.3106, "lng": 73.1706, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Vadodara", "name": "Sayajigunj Station Terminus", "lat": 22.3129, "lng": 73.1889, "dept": "State Police HQ", "color": "#ef4444"},
-            {"city": "Vadodara", "name": "Golden Chowkdi NH-48 Arterial", "lat": 22.3488, "lng": 73.2384, "dept": "RTO & Transport", "color": "#8b5cf6"},
-            
-            # 15-16: Rajkot Saurashtra Range
-            {"city": "Rajkot", "name": "Trikon Baug City Center", "lat": 22.3021, "lng": 70.8022, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Rajkot", "name": "Kalawad Road KKV Chowk", "lat": 22.2890, "lng": 70.7681, "dept": "State Police HQ", "color": "#ef4444"},
-            
-            # 17-18: Bhavnagar Coastal Range
-            {"city": "Bhavnagar", "name": "Crescent Circle City Center", "lat": 21.7684, "lng": 72.1465, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Bhavnagar", "name": "Ghogha Coastal Port Checkpoint", "lat": 21.7588, "lng": 72.1642, "dept": "Coastal Marine Police", "color": "#06b6d4"},
-            
-            # 19-20: Jamnagar Range
-            {"city": "Jamnagar", "name": "Teen Batti Chowk Commercial", "lat": 22.4707, "lng": 70.0655, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Jamnagar", "name": "Khambhalia Highway Bypass", "lat": 22.4496, "lng": 70.0380, "dept": "State Police HQ", "color": "#ef4444"},
-            
-            # 21-22: Devbhumi Dwarka Coastal Border
-            {"city": "Devbhumi Dwarka", "name": "Dwarkadhish Temple Corridor", "lat": 22.2442, "lng": 68.9685, "dept": "State Police HQ", "color": "#ef4444"},
-            {"city": "Devbhumi Dwarka", "name": "Okha Port Coastal Terminal", "lat": 22.4703, "lng": 69.0712, "dept": "Coastal Marine Police", "color": "#06b6d4"},
-            
-            # 23-24: Gir Somnath Coastal Range
-            {"city": "Gir Somnath", "name": "Somnath Temple Coastal Ring Road", "lat": 20.8880, "lng": 70.4010, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Gir Somnath", "name": "Veraval Harbor Gate", "lat": 20.9067, "lng": 70.3685, "dept": "Coastal Marine Police", "color": "#06b6d4"},
-            
-            # 25-26: Junagadh Range
-            {"city": "Junagadh", "name": "Majevdi Gate Historical Ingress", "lat": 21.5236, "lng": 70.4579, "dept": "State Police HQ", "color": "#ef4444"},
-            {"city": "Junagadh", "name": "Bhavnath Taleti (Girnar Foothills)", "lat": 21.5312, "lng": 70.4980, "dept": "Forest & Wildlife", "color": "#10b981"},
-            
-            # 27: Dahod Eastern Border Checkpost (Station Road & NH-56 Highway Intersection)
-            {"city": "Dahod", "name": "Dahod MP-Gujarat Interstate RTO Checkpost", "lat": 22.8385, "lng": 74.2550, "dept": "RTO & Transport", "color": "#8b5cf6"},
-            
-            # 28-29: Valsad Southern Border
-            {"city": "Valsad", "name": "Tithal Road Crossing", "lat": 20.6092, "lng": 72.9288, "dept": "Traffic Police", "color": "#3b82f6"},
-            {"city": "Valsad", "name": "Bhilad NH-48 Maharashtra Border Checkpost", "lat": 20.2520, "lng": 72.8870, "dept": "State Police HQ", "color": "#ef4444"},
-            
-            # 30: Kutch Northern Border & Port
-            {"city": "Kutch (Gandhidham)", "name": "Kandla Port Terminal Highway Gate", "lat": 23.0753, "lng": 70.1337, "dept": "Port & Coastal Police", "color": "#06b6d4"},
+            {"city": "Ahmedabad", "name": "01 Chiman bhai Bridge", "lat": 23.0645, "lng": 72.5812, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Ahmedabad", "name": "02 Janpath", "lat": 23.0373, "lng": 72.5620, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Ahmedabad", "name": "03 O.N.G.C. Office", "lat": 23.1042, "lng": 72.5891, "dept": "State Police HQ", "color": "#ef4444"},
+            {"city": "Ahmedabad", "name": "04 Paldi Circle", "lat": 23.0135, "lng": 72.5647, "dept": "Municipal Corp", "color": "#10b981"},
+            {"city": "Ahmedabad", "name": "05 Visat teen Rasta", "lat": 23.0984, "lng": 72.5986, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Junagadh", "name": "06 Timbavadi gate-Junagadh", "lat": 21.5012, "lng": 70.4431, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Gir Somnath", "name": "07 hero-showroom-gir-somnath", "lat": 20.8950, "lng": 70.4120, "dept": "Coastal Marine Police", "color": "#06b6d4"},
+            {"city": "Junagadh", "name": "08 majewadi-gate-junagadh", "lat": 21.5204, "lng": 70.4632, "dept": "State Police HQ", "color": "#ef4444"},
+            {"city": "Junagadh", "name": "09 new-bypass-near-by-circle-junagadh-2", "lat": 21.5380, "lng": 70.4810, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Junagadh", "name": "10 char-chowk-road-2-junagadh", "lat": 21.5165, "lng": 70.4589, "dept": "State Police HQ", "color": "#ef4444"},
+            {"city": "Junagadh", "name": "11 dolatpara-junagadh", "lat": 21.5420, "lng": 70.4720, "dept": "Municipal Corp", "color": "#10b981"},
+            {"city": "Gandhinagar", "name": "12 Tri Mandir Adalaj Tollnaka", "lat": 23.1670, "lng": 72.5850, "dept": "RTO & Transport", "color": "#8b5cf6"},
+            {"city": "Ahmedabad", "name": "13 CN Vidhyalaya", "lat": 23.0219, "lng": 72.5543, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Ahmedabad", "name": "14 Delight RLVD", "lat": 22.9867, "lng": 72.6105, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Ahmedabad", "name": "15 Suvidha park", "lat": 23.0089, "lng": 72.5712, "dept": "Municipal Corp", "color": "#10b981"},
+            {"city": "Ahmedabad", "name": "16 Visat P2", "lat": 23.0984, "lng": 72.5841, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Rajkot", "name": "17 Rajkot Bus Port CCTV", "lat": 22.3080, "lng": 70.7990, "dept": "State Police HQ", "color": "#ef4444"},
+            {"city": "Rajkot", "name": "18 Rajkot CCTV", "lat": 22.3021, "lng": 70.8022, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Navsari", "name": "19 KHAPARIA GRAM PANCHAYAT, GANDEVI", "lat": 20.8120, "lng": 72.9810, "dept": "Coastal Marine Police", "color": "#06b6d4"},
+            {"city": "Panchmahal", "name": "20 Mohanpura", "lat": 22.7530, "lng": 73.6120, "dept": "State Police HQ", "color": "#ef4444"},
+            {"city": "Patan", "name": "21 Patan Dethali Char Rasta", "lat": 23.8420, "lng": 72.1290, "dept": "RTO & Transport", "color": "#8b5cf6"},
+            {"city": "Banaskantha", "name": "22 BK Mervada tran Rasta", "lat": 24.1720, "lng": 72.4310, "dept": "State Police HQ", "color": "#ef4444"},
+            {"city": "Gujarat", "name": "23 kheram", "lat": 23.4120, "lng": 72.8910, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Gandhinagar", "name": "24 dehgam", "lat": 23.1680, "lng": 72.8120, "dept": "State Police HQ", "color": "#ef4444"},
+            {"city": "Navsari", "name": "25 dhanori", "lat": 20.8910, "lng": 73.0120, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Navsari", "name": "26 TANKAL", "lat": 20.7810, "lng": 73.1290, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Navsari", "name": "27 bilimora 1", "lat": 20.7634, "lng": 72.9518, "dept": "Municipal Corp", "color": "#10b981"},
+            {"city": "Navsari", "name": "28 bilimora 2", "lat": 20.7640, "lng": 72.9525, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Navsari", "name": "29 bilimora 3", "lat": 20.7645, "lng": 72.9530, "dept": "Traffic Police", "color": "#3b82f6"},
+            {"city": "Kutch", "name": "30 Gandhidham Rambaugh p2", "lat": 23.0753, "lng": 70.1337, "dept": "Port & Coastal Police", "color": "#06b6d4"},
         ]
         
         cams = []

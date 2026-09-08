@@ -1,0 +1,15 @@
+path: /Users/parthlodaya/Desktop/cctv gujrat ai/backend1/datasets/manual_annotated_gujarat
+train: images/train
+val: images/val
+nc: 10
+names:
+  0: pedestrian
+  1: car
+  2: two_wheeler
+  3: heavy_machinery
+  4: emergency_vehicle
+  5: van
+  6: truck
+  7: bus
+  8: auto_rickshaw
+  9: others

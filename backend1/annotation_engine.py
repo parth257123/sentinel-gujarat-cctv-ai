@@ -18,27 +18,35 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 HEAVYWEIGHT_DIR = os.path.join(BASE_DIR, "datasets", "heavyweight_5500_cctv_dataset")
 HARVESTED_DIR = os.path.join(BASE_DIR, "harvested_cctv_frames")
 
-# Prioritize the curated heavyweight dataset requested by user
-FRAMES_DIR = HEAVYWEIGHT_DIR if os.path.exists(HEAVYWEIGHT_DIR) else HARVESTED_DIR
+# Point directly to harvested frames directory containing 15,000+ clean frames
+FRAMES_DIR = HARVESTED_DIR
 DATASET_DIR = os.path.join(BASE_DIR, "datasets", "manual_annotated_gujarat")
 
-# Standardized 6-Class Indian Traffic & Pedestrian Taxonomy
+# Standardized 10-Class Indian Traffic & Pedestrian Taxonomy
 CLASSES = [
-    "car",             # 0
-    "auto",            # 1
-    "bus",             # 2
-    "truck",           # 3
-    "two_wheeler",     # 4
-    "pedestrian"       # 5
+    "pedestrian",         # 0
+    "car",                # 1
+    "two_wheeler",        # 2
+    "heavy_machinery",    # 3
+    "emergency_vehicle",  # 4
+    "van",                # 5
+    "truck",              # 6
+    "bus",                # 7
+    "auto_rickshaw",      # 8
+    "others"              # 9
 ]
 
 CLASS_COLORS = {
-    0: "#10b981",  # Emerald for Car
-    1: "#f59e0b",  # Amber for Auto
-    2: "#8b5cf6",  # Purple for Bus
-    3: "#ef4444",  # Red for Truck
-    4: "#06b6d4",  # Cyan for Two Wheeler
-    5: "#ec4899",  # Pink for Pedestrian
+    0: "#06b6d4",  # Cyan for Pedestrian
+    1: "#3b82f6",  # Blue for Car
+    2: "#10b981",  # Green for Two Wheeler
+    3: "#d97706",  # Amber for Heavy Machinery
+    4: "#ef4444",  # Red for Emergency Vehicle
+    5: "#8b5cf6",  # Purple for Van
+    6: "#ec4899",  # Pink for Truck
+    7: "#6366f1",  # Indigo for Bus
+    8: "#f59e0b",  # Orange for Auto-Rickshaw
+    9: "#64748b",  # Slate for Others
 }
 
 class AnnotationEngine:
@@ -87,7 +95,7 @@ class AnnotationEngine:
             with open(yaml_path, "w") as f:
                 yaml.dump(data_dict, f, default_flow_style=False)
 
-    def list_available_frames(self, limit=5000):
+    def list_available_frames(self, limit=25000):
         """Returns list of curated heavyweight CCTV frames with annotation status."""
         all_frames = glob.glob(os.path.join(FRAMES_DIR, "**", "*.jpg"), recursive=True)
         # Sort by filename
@@ -106,7 +114,24 @@ class AnnotationEngine:
             fname = os.path.basename(fp)
             base = os.path.splitext(fname)[0]
             cam_id = fname.split("_")[0] if fname.startswith("cam") else os.path.basename(os.path.dirname(fp))
-            lighting_cat = os.path.basename(os.path.dirname(fp))
+
+            # Categorize lighting condition accurately for UI filtering
+            if "_clahe" in fname or "_night" in fname or "_sodium" in fname:
+                lighting_cat = "night_sodium_lighting"
+            else:
+                parts = fname.split("_")
+                lighting_cat = "daylight_morning_rush"
+                for p in parts:
+                    if len(p) == 6 and p.isdigit():
+                        h = int(p[:2])
+                        if 6 <= h < 17:
+                            lighting_cat = "daylight_morning_rush"
+                        elif 17 <= h < 20:
+                            lighting_cat = "twilight_dawn_dusk"
+                        else:
+                            lighting_cat = "night_sodium_lighting"
+                        break
+
             is_annotated = base in annotated_basenames
             results.append({
                 "filename": fname,
@@ -163,23 +188,31 @@ class AnnotationEngine:
                 name = str(self.detector.names.get(raw_cls, "")).lower()
                 conf_val = float(box.conf[0])
 
-                # Map model classes into our 6-class taxonomy: car (0), auto (1), bus (2), truck (3), two_wheeler (4), pedestrian (5)
-                cls_id = 0  # default car
+                # Map model classes into our 10-class taxonomy:
+                cls_id = 1  # default car
                 lower_classes = [c.lower() for c in CLASSES]
                 if name in lower_classes:
                     cls_id = lower_classes.index(name)
-                elif "auto" in name or "rickshaw" in name:
-                    cls_id = 1
-                elif "bus" in name:
-                    cls_id = 2
-                elif "truck" in name or "heavy" in name or "lorry" in name:
-                    cls_id = 3
-                elif "motorcycle" in name or "bike" in name or "scooter" in name or "bicycle" in name or "two" in name:
-                    cls_id = 4
-                elif "person" in name or "pedestrian" in name or "human" in name or "walk" in name:
-                    cls_id = 5
-                elif "car" in name or "van" in name or "suv" in name or "vehicle" in name:
-                    cls_id = 0
+                elif "person" in name or "pedestrian" in name:
+                    cls_id = 0  # pedestrian
+                elif "motorcycle" in name or "scooter" in name or "bike" in name or "two" in name:
+                    cls_id = 2  # two_wheeler
+                elif "heavy" in name or "machinery" in name or "tractor" in name or "jcb" in name or "crane" in name:
+                    cls_id = 3  # heavy_machinery
+                elif "emergency" in name or "ambulance" in name or "police" in name:
+                    cls_id = 4  # emergency_vehicle
+                elif "van" in name or "omni" in name or "eeco" in name:
+                    cls_id = 5  # van
+                elif "truck" in name or "lorry" in name or "goods" in name:
+                    cls_id = 6  # truck
+                elif "bus" in name or "transit" in name or "passenger" in name:
+                    cls_id = 7  # bus
+                elif "rickshaw" in name or "auto" in name:
+                    cls_id = 8  # auto_rickshaw
+                elif "cart" in name or "other" in name:
+                    cls_id = 9  # others
+                else:
+                    cls_id = 1  # car
 
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 bw_px = x2 - x1
@@ -215,11 +248,26 @@ class AnnotationEngine:
         base_id = os.path.splitext(fname)[0]
 
         # Destination paths
+        os.makedirs(os.path.join(DATASET_DIR, "images", split), exist_ok=True)
+        os.makedirs(os.path.join(DATASET_DIR, "labels", split), exist_ok=True)
         dst_img = os.path.join(DATASET_DIR, "images", split, fname)
         dst_lbl = os.path.join(DATASET_DIR, "labels", split, f"{base_id}.txt")
 
-        # Copy image
-        shutil.copy2(src_path, dst_img)
+        # Copy image safely (handle existing files and APFS hardlinks without crashing)
+        if not os.path.exists(dst_img) or not os.path.samefile(src_path, dst_img):
+            try:
+                shutil.copy2(src_path, dst_img)
+            except (shutil.SameFileError, Exception):
+                pass
+
+        # If switching split, clean up old label in other split to prevent duplicates
+        other_split = "val" if split == "train" else "train"
+        other_lbl = os.path.join(DATASET_DIR, "labels", other_split, f"{base_id}.txt")
+        if os.path.exists(other_lbl):
+            try:
+                os.remove(other_lbl)
+            except Exception:
+                pass
 
         # Write label lines: <class_id> <cx> <cy> <w> <h>
         lines = []

@@ -1,0 +1,10 @@
+{
+  "status": "idle",
+  "target_clean_frames": 22000,
+  "current_clean_total": 19407,
+  "progress_pct": 88.2,
+  "total_analyzed": 16338,
+  "total_saved": 2000,
+  "uptime_seconds": 1221.9,
+  "mode": "night_saliency_collector"
+}

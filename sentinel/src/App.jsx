@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Map, Video, Search, Shield, Bell, BarChart3, Settings, Camera, Cpu, Radio, Target, FileText, AlertOctagon, ChevronLeft, ChevronRight, Menu, Database, Sparkles, Siren, Fingerprint, Route, Tag } from 'lucide-react'
-import { MapPage } from './components/MapComponents'
+import { Map, Video, Search, Shield, Bell, BarChart3, Settings, Camera, Cpu, Radio, Target, FileText, AlertOctagon, ChevronLeft, ChevronRight, Menu, Database, Sparkles, Siren, Fingerprint, Route, Tag, Wand2 } from 'lucide-react'
+import { CameraMonitoringPage } from './pages/CameraMonitoringPage'
 import { VideoWallPage } from './pages/VideoWallPage'
+import { VideoEnhancementStudioPage } from './pages/VideoEnhancementStudioPage'
 import { VehicleSearchPage } from './pages/VehicleSearchPage'
 import { ViolationsPage } from './pages/ViolationsPage'
 import { WatchlistPage } from './pages/WatchlistPage'
@@ -15,7 +16,7 @@ import { AnnotationStudioPage } from './pages/AnnotationStudioPage'
 import { TacticalInterceptModal } from './components/TacticalInterceptModal'
 import { generateWatchlist } from './data/sampleData'
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '';
 
 export default function App() {
   const [activePage, setActivePage] = useState('annotation');
@@ -94,7 +95,9 @@ export default function App() {
     let reconnectTimer;
     
     function connect() {
-      ws = new WebSocket('ws://localhost:8000/ws');
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+      ws = new WebSocket(wsUrl);
       
       ws.onopen = () => {
         setIsConnected(true);
@@ -169,8 +172,9 @@ export default function App() {
   const onlineCameras = cameras.filter(c => c.status === 'online').length;
 
   const navItems = [
-    { id: 'map', label: 'Camera Registry & GIS Map', icon: Map },
+    { id: 'map', label: 'Camera Health & Monitoring', icon: Map },
     { id: 'videowall', label: 'Video Wall', icon: Video },
+    { id: 'enhancement', label: 'Video Enhancement Studio', icon: Wand2, badge: '5-AI' },
     { id: 'search', label: 'Vehicle Search & Tracking', icon: Search },
     { id: 'violations', label: 'Traffic Violations', icon: AlertOctagon },
     { id: 'trajectory', label: '3D Trajectory & Intercept', icon: Route },
@@ -184,8 +188,9 @@ export default function App() {
   ];
 
   const pageLabels = {
-    map: 'Camera Registry & GIS Map',
+    map: 'Camera Health Monitoring & GIS Infrastructure',
     videowall: 'Unified Video Wall',
+    enhancement: 'Optical & Deep Learning Video Enhancement Suite (Real-ESRGAN, Zero-DCE, FastDVDNet, NAFNet, H.264)',
     search: 'Vehicle Search & Cross-Camera Tracking',
     violations: 'Traffic Violations & e-Challan Enforcement',
     trajectory: 'Tactical 3D Vehicle Trajectory & Intercept Network',
@@ -233,7 +238,7 @@ export default function App() {
 
         <nav className="sidebar-nav">
           <div className="nav-section-label">Monitoring &amp; Enforcement</div>
-          {navItems.slice(0, 4).map(item => (
+          {navItems.slice(0, 5).map(item => (
             <a 
               key={item.id} 
               className={`nav-item ${activePage === item.id ? 'active' : ''}`} 
@@ -247,7 +252,7 @@ export default function App() {
           ))}
 
           <div className="nav-section-label">Intelligence &amp; Tactical AI</div>
-          {navItems.slice(4, 9).map(item => (
+          {navItems.slice(5, 10).map(item => (
             <a 
               key={item.id} 
               className={`nav-item ${activePage === item.id ? 'active' : ''}`} 
@@ -261,7 +266,7 @@ export default function App() {
           ))}
 
           <div className="nav-section-label">Reports &amp; Legal Forensics</div>
-          {navItems.slice(9).map(item => (
+          {navItems.slice(10).map(item => (
             <a 
               key={item.id} 
               className={`nav-item ${activePage === item.id ? 'active' : ''}`} 
@@ -322,8 +327,9 @@ export default function App() {
         </header>
 
         <div className="page-container">
-          {activePage === 'map' && <MapPage cameras={cameras} selectedCamera={selectedCamera} setSelectedCamera={setSelectedCamera} detections={detections} />}
+          {activePage === 'map' && <CameraMonitoringPage cameras={cameras} selectedCamera={selectedCamera} setSelectedCamera={setSelectedCamera} detections={detections} />}
           {activePage === 'videowall' && <VideoWallPage cameras={cameras} />}
+          {activePage === 'enhancement' && <VideoEnhancementStudioPage cameras={cameras} />}
           {activePage === 'search' && <VehicleSearchPage cameras={cameras} detections={detections} />}
           {activePage === 'violations' && <ViolationsPage cameras={cameras} />}
           {activePage === 'trajectory' && <TrajectoryPage />}
@@ -332,7 +338,7 @@ export default function App() {
           {activePage === 'alerts' && <AlertsPage alerts={alerts} setAlerts={setAlerts} onOpenAlertModal={(a) => setActiveInterceptModal(a)} />}
           {activePage === 'analytics' && <AnalyticsPage cameras={cameras} detections={detections} alerts={alerts} watchlist={watchlist} />}
           {activePage === 'forensics' && <ForensicsDossierPage />}
-          {activePage === 'archive' && <DataArchivePage />}
+          {activePage === 'archive' && <DataArchivePage cameras={cameras} onNavigatePage={setActivePage} onSelectVehicle={(plate) => { setActivePage('search'); }} />}
           {activePage === 'annotation' && <AnnotationStudioPage />}
         </div>
       </div>

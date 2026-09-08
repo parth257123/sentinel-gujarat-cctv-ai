@@ -3,7 +3,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import QueuePool
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./sentinel.db"
+import os
+
+DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "sentinel.db"))
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
 # ─── Concurrency-Hardened SQLite Engine ───────────────────────────────────────
 # The harvester, the CCTV worker and the FastAPI request handlers all write to

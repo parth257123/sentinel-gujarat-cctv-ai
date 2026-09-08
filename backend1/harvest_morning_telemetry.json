@@ -1,0 +1,29 @@
+{
+  "status": "completed",
+  "start_time": "2026-09-08T10:57:37.896501",
+  "target": 3000,
+  "saved_morning_frames": 3000,
+  "live_frames_saved": 101,
+  "hd_video_frames_saved": 2899,
+  "rejected_blur": 35,
+  "rejected_duplicate": 11193,
+  "rejected_empty_road": 1081,
+  "rejected_other": 1942,
+  "elapsed_seconds": 4762.3,
+  "active_cameras": [
+    "cam01",
+    "cam02",
+    "cam03",
+    "cam04",
+    "cam05",
+    "cam10",
+    "cam13",
+    "cam14",
+    "cam16",
+    "cam12",
+    "cam06",
+    "cam20",
+    "cam08",
+    "cam24"
+  ]
+}

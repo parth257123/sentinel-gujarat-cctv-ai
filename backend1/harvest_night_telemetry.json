@@ -1,0 +1,22 @@
+{
+  "status": "completed",
+  "start_time": "2026-09-08T12:28:19.115967",
+  "target": 2000,
+  "saved_night_frames": 2000,
+  "useful_vehicles_detected": 6332,
+  "rejected_empty_road": 28,
+  "rejected_motion_blur": 7685,
+  "rejected_static_duplicate": 6625,
+  "rejected_glare": 2463,
+  "elapsed_seconds": 1221.9,
+  "active_cameras": [
+    "cam16",
+    "cam14",
+    "cam06",
+    "cam01",
+    "cam04",
+    "cam05",
+    "cam12",
+    "cam02"
+  ]
+}

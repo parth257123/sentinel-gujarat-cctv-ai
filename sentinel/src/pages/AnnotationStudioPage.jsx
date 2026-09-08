@@ -1,18 +1,23 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   Tag, Sparkles, CheckCircle2, ChevronRight, ChevronLeft, 
-  Trash2, Save, RefreshCw, Eye, EyeOff, Database, Layers, Plus, HelpCircle
+  Trash2, Save, RefreshCw, Eye, EyeOff, Database, Layers, Plus, HelpCircle,
+  Play, Square, ShieldCheck
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = '';
 
 const CLASSES = [
-  { id: 0, name: 'car', label: 'Car', key: '1', color: '#10b981' },
-  { id: 1, name: 'auto', label: 'Auto', key: '2', color: '#f59e0b' },
-  { id: 2, name: 'bus', label: 'Bus', key: '3', color: '#8b5cf6' },
-  { id: 3, name: 'truck', label: 'Truck', key: '4', color: '#ef4444' },
-  { id: 4, name: 'two_wheeler', label: 'Two Wheeler', key: '5', color: '#06b6d4' },
-  { id: 5, name: 'pedestrian', label: 'Pedestrian', key: '6', color: '#ec4899' },
+  { id: 0, name: 'pedestrian', label: 'Pedestrian', key: '1', color: '#06b6d4' },
+  { id: 1, name: 'car', label: 'Car', key: '2', color: '#3b82f6' },
+  { id: 2, name: 'two_wheeler', label: 'Two Wheeler', key: '3', color: '#10b981' },
+  { id: 3, name: 'heavy_machinery', label: 'Heavy Machinery', key: '4', color: '#d97706' },
+  { id: 4, name: 'emergency_vehicle', label: 'Emergency', key: '5', color: '#ef4444' },
+  { id: 5, name: 'van', label: 'Van', key: '6', color: '#8b5cf6' },
+  { id: 6, name: 'truck', label: 'Truck', key: '7', color: '#ec4899' },
+  { id: 7, name: 'bus', label: 'Bus', key: '8', color: '#6366f1' },
+  { id: 8, name: 'auto_rickshaw', label: 'Auto Rickshaw', key: '9', color: '#f59e0b' },
+  { id: 9, name: 'others', label: 'Others', key: '0', color: '#64748b' },
 ];
 
 export function AnnotationStudioPage() {
@@ -20,7 +25,7 @@ export function AnnotationStudioPage() {
   const [selectedFrameIdx, setSelectedFrameIdx] = useState(0);
   const [boxes, setBoxes] = useState([]);
   const [selectedBoxIdx, setSelectedBoxIdx] = useState(null);
-  const [activeClassId, setActiveClassId] = useState(0); // Default 'car'
+  const [activeClassId, setActiveClassId] = useState(1); // Default 'car'
   const [split, setSplit] = useState('train');
   const [stats, setStats] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, annotated
@@ -35,6 +40,13 @@ export function AnnotationStudioPage() {
   const [scaleTelemetry, setScaleTelemetry] = useState(null);
   const [scaleDatasets, setScaleDatasets] = useState([]);
   const [isScaling, setIsScaling] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [collabNotification, setCollabNotification] = useState('');
+
+  // Intelligent Harvester state
+  const [showHarvestModal, setShowHarvestModal] = useState(false);
+  const [harvestTelemetry, setHarvestTelemetry] = useState(null);
+  const [isHarvestActionLoading, setIsHarvestActionLoading] = useState(false);
 
   // Drag-to-draw state
   const imageRef = useRef(null);
@@ -46,7 +58,34 @@ export function AnnotationStudioPage() {
   // Load available frames & stats on mount
   useEffect(() => {
     loadFramesAndStats();
+    loadHarvestTelemetry();
+    const timer = setInterval(loadHarvestTelemetry, 4000);
+    return () => clearInterval(timer);
   }, []);
+
+  const loadHarvestTelemetry = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/harvest/status`).then(r => r.json());
+      if (res && res.telemetry) {
+        setHarvestTelemetry(res.telemetry);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  const toggleHarvestServer = async (action) => {
+    setIsHarvestActionLoading(true);
+    try {
+      await fetch(`${API_BASE}/api/harvest/${action}`, { method: 'POST' });
+      await loadHarvestTelemetry();
+      loadFramesAndStats();
+    } catch (e) {
+      console.error(`Failed to ${action} harvest server:`, e);
+    } finally {
+      setIsHarvestActionLoading(false);
+    }
+  };
 
   const loadScaleData = async () => {
     try {
@@ -83,7 +122,7 @@ export function AnnotationStudioPage() {
   const loadFramesAndStats = async () => {
     try {
       const [framesRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/annotation/frames?limit=5000`).then(r => r.json()),
+        fetch(`${API_BASE}/api/annotation/frames?limit=25000`).then(r => r.json()),
         fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json())
       ]);
       setFrames(framesRes);
@@ -112,21 +151,76 @@ export function AnnotationStudioPage() {
       .catch(() => setBoxes([]));
   }, [activeFrame]);
 
-  // Keyboard shortcuts (1-7 for class selection, Delete to delete box, Space for AI Assist)
+  // Live Collaborative Multi-User Sync WebSocket
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    let ws = null;
+    let reconnectTimer = null;
+
+    const connectWS = () => {
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onopen = () => setWsConnected(true);
+        ws.onclose = () => {
+          setWsConnected(false);
+          reconnectTimer = setTimeout(connectWS, 4000);
+        };
+        ws.onerror = () => {
+          setWsConnected(false);
+        };
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data && data.type === 'annotation_saved') {
+              // 1. Mark frame as annotated in local state
+              setFrames(prev => prev.map(f => f.base_id === data.base_id ? { ...f, is_annotated: true } : f));
+
+              // 2. If viewing the exact same frame, sync boxes live!
+              if (activeFrame && activeFrame.base_id === data.base_id) {
+                setBoxes(data.boxes || []);
+              }
+
+              // 3. Live collaborator toast
+              setCollabNotification(`⚡ Collaborator saved ${data.base_id} (${data.boxes_count} boxes)`);
+              setTimeout(() => setCollabNotification(''), 4000);
+
+              // 4. Update dataset stats in real-time
+              fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json()).then(setStats).catch(() => {});
+            }
+          } catch (err) {}
+        };
+      } catch (err) {}
+    };
+
+    connectWS();
+    return () => {
+      if (ws) ws.close();
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+    };
+  }, [activeFrame]);
+
+  // Keyboard shortcuts (1-9 and 0 for class selection, Delete to delete box, Space for AI Assist)
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Don't trigger if typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
-      const num = parseInt(e.key);
-      if (num >= 1 && num <= CLASSES.length) {
-        setActiveClassId(num - 1);
+      let clsIdx = null;
+      if (e.key >= '1' && e.key <= '9') {
+        clsIdx = parseInt(e.key) - 1;
+      } else if (e.key === '0') {
+        clsIdx = 9;
+      }
+
+      if (clsIdx !== null && clsIdx < CLASSES.length) {
+        setActiveClassId(clsIdx);
         if (selectedBoxIdx !== null) {
           setBoxes(prev => prev.map((b, i) => i === selectedBoxIdx ? {
             ...b,
-            cls_id: num - 1,
-            class_name: CLASSES[num - 1].name,
-            color: CLASSES[num - 1].color
+            cls_id: clsIdx,
+            class_name: CLASSES[clsIdx].name,
+            color: CLASSES[clsIdx].color
           } : b));
         }
       } else if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -225,7 +319,7 @@ export function AnnotationStudioPage() {
     if (!activeFrame) return;
     setIsSaving(true);
     try {
-      await fetch(`${API_BASE}/api/annotation/save`, {
+      const res = await fetch(`${API_BASE}/api/annotation/save`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -235,20 +329,38 @@ export function AnnotationStudioPage() {
         })
       });
 
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `Server error: ${res.status} ${res.statusText}`);
+      }
+
       // Update local frame status to annotated
       setFrames(prev => prev.map((f, i) => i === selectedFrameIdx ? { ...f, is_annotated: true } : f));
       setFeedbackMsg(`✅ Saved ${boxes.length} labels to ${split} set!`);
       setTimeout(() => setFeedbackMsg(''), 2500);
 
       // Refresh dataset stats
-      fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json()).then(setStats);
+      fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json()).then(setStats).catch(() => {});
 
-      // Advance to next frame
-      if (selectedFrameIdx < frames.length - 1) {
+      // Advance to next frame in current filtered view
+      const currFilteredIdx = filteredFrames.findIndex(f => f.base_id === activeFrame.base_id);
+      if (currFilteredIdx !== -1 && currFilteredIdx < filteredFrames.length - 1) {
+        const nextFrame = filteredFrames[currFilteredIdx + 1];
+        const nextOriginalIdx = frames.findIndex(f => f.base_id === nextFrame.base_id);
+        if (nextOriginalIdx !== -1) {
+          setSelectedFrameIdx(nextOriginalIdx);
+          const nextPage = Math.floor((currFilteredIdx + 1) / FRAMES_PER_PAGE);
+          if (nextPage !== filmstripPage) {
+            setFilmstripPage(nextPage);
+          }
+        }
+      } else if (selectedFrameIdx < frames.length - 1) {
         setSelectedFrameIdx(selectedFrameIdx + 1);
       }
     } catch (err) {
       console.error("Failed to save annotation:", err);
+      setFeedbackMsg(`❌ Save failed: ${err.message}`);
+      setTimeout(() => setFeedbackMsg(''), 4000);
     } finally {
       setIsSaving(false);
     }
@@ -319,14 +431,30 @@ export function AnnotationStudioPage() {
     }
   };
 
-  // Filter frames
-  const filteredFrames = frames.filter(f => {
-    if (filter === 'pending' && f.is_annotated) return false;
-    if (filter === 'annotated' && !f.is_annotated) return false;
-    if (selectedCam !== 'all' && f.cam_id !== selectedCam) return false;
-    if (selectedLighting !== 'all' && f.lighting !== selectedLighting) return false;
-    return true;
-  });
+  // Filmstrip pagination to keep browser fast and smooth with 15,000+ frames
+  const [filmstripPage, setFilmstripPage] = useState(0);
+  const FRAMES_PER_PAGE = 50;
+
+  useEffect(() => {
+    setFilmstripPage(0);
+  }, [filter, selectedCam, selectedLighting]);
+
+  // Memoized Filter frames
+  const filteredFrames = useMemo(() => {
+    return frames.filter(f => {
+      if (filter === 'pending' && f.is_annotated) return false;
+      if (filter === 'annotated' && !f.is_annotated) return false;
+      if (selectedCam !== 'all' && f.cam_id !== selectedCam) return false;
+      if (selectedLighting !== 'all' && f.lighting !== selectedLighting) return false;
+      return true;
+    });
+  }, [frames, filter, selectedCam, selectedLighting]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredFrames.length / FRAMES_PER_PAGE));
+  const paginatedFrames = useMemo(() => {
+    const start = filmstripPage * FRAMES_PER_PAGE;
+    return filteredFrames.slice(start, start + FRAMES_PER_PAGE);
+  }, [filteredFrames, filmstripPage]);
 
   const uniqueCams = Array.from(new Set(frames.map(f => f.cam_id))).sort();
   const countDay = useMemo(() => frames.filter(f => f.lighting === 'daylight_morning_rush').length, [frames]);
@@ -372,6 +500,27 @@ export function AnnotationStudioPage() {
           </button>
 
           <button
+            onClick={() => { setShowHarvestModal(true); loadHarvestTelemetry(); }}
+            title="Intelligent Frame Harvester with 6-metric Computer Vision quality filter"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              background: harvestTelemetry?.status === 'running' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(51, 65, 85, 0.5)',
+              border: `1px solid ${harvestTelemetry?.status === 'running' ? 'rgba(16, 185, 129, 0.5)' : '#475569'}`,
+              color: harvestTelemetry?.status === 'running' ? '#34d399' : '#94a3b8',
+              padding: '8px 14px', borderRadius: '8px',
+              fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+              boxShadow: harvestTelemetry?.status === 'running' ? '0 0 15px rgba(16, 185, 129, 0.25)' : 'none'
+            }}
+          >
+            <span style={{
+              width: '8px', height: '8px', borderRadius: '50%',
+              backgroundColor: harvestTelemetry?.status === 'running' ? '#10b981' : '#64748b',
+              boxShadow: harvestTelemetry?.status === 'running' ? '0 0 8px #10b981' : 'none'
+            }} />
+            🌾 Harvester: {harvestTelemetry ? `${harvestTelemetry.current_clean_total?.toLocaleString()} / 15,000 (${harvestTelemetry.progress_pct}%)` : 'Checking...'}
+          </button>
+
+          <button
             onClick={() => { setShowScaleModal(true); loadScaleData(); }}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
@@ -397,6 +546,23 @@ export function AnnotationStudioPage() {
               </div>
             </>
           )}
+
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '6px',
+            background: wsConnected ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+            border: `1px solid ${wsConnected ? 'rgba(16, 185, 129, 0.35)' : 'rgba(239, 68, 68, 0.35)'}`,
+            padding: '6px 12px', borderRadius: '8px',
+            fontSize: '11px', fontWeight: '600',
+            color: wsConnected ? '#34d399' : '#f87171'
+          }}>
+            <span style={{
+              width: '7px', height: '7px', borderRadius: '50%',
+              background: wsConnected ? '#10b981' : '#ef4444',
+              display: 'inline-block',
+              boxShadow: wsConnected ? '0 0 8px #10b981' : 'none'
+            }} />
+            {wsConnected ? 'Live Collab Sync' : 'Connecting Sync...'}
+          </div>
         </div>
       </div>
 
@@ -455,9 +621,28 @@ export function AnnotationStudioPage() {
             </select>
           </div>
 
-          {/* Frames List */}
+          {/* Page Navigator */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', background: '#0a0f1d', borderBottom: '1px solid #1e293b', fontSize: '11px', color: '#94a3b8' }}>
+            <button
+              onClick={() => setFilmstripPage(p => Math.max(0, p - 1))}
+              disabled={filmstripPage === 0}
+              style={{ background: 'transparent', border: 'none', color: filmstripPage === 0 ? '#475569' : '#38bdf8', cursor: filmstripPage === 0 ? 'default' : 'pointer', fontWeight: 'bold' }}
+            >
+              ◀ Prev
+            </button>
+            <span>{filmstripPage * FRAMES_PER_PAGE + 1}–{Math.min(filteredFrames.length, (filmstripPage + 1) * FRAMES_PER_PAGE)} of {filteredFrames.length}</span>
+            <button
+              onClick={() => setFilmstripPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={filmstripPage >= totalPages - 1}
+              style={{ background: 'transparent', border: 'none', color: filmstripPage >= totalPages - 1 ? '#475569' : '#38bdf8', cursor: filmstripPage >= totalPages - 1 ? 'default' : 'pointer', fontWeight: 'bold' }}
+            >
+              Next ▶
+            </button>
+          </div>
+
+          {/* Frames List (Fast 50-Item Paginated Window) */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
-            {filteredFrames.map((f, idx) => {
+            {paginatedFrames.map((f) => {
               const originalIdx = frames.findIndex(orig => orig.base_id === f.base_id);
               const isSelected = originalIdx === selectedFrameIdx;
               return (
@@ -475,6 +660,7 @@ export function AnnotationStudioPage() {
                   <img
                     src={`${API_BASE}/api/annotation/frame_image?path=${encodeURIComponent(f.full_path)}`}
                     alt="thumb"
+                    loading="lazy"
                     style={{ width: '48px', height: '36px', objectFit: 'cover', borderRadius: '4px', background: '#1e293b' }}
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -698,7 +884,7 @@ export function AnnotationStudioPage() {
           
           <div style={{ padding: '14px', borderBottom: '1px solid #1e293b' }}>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#94a3b8' }}>
-              Select Vehicle Class [1 - 7]
+              Select Vehicle Class [1 - 10]
             </h3>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
@@ -935,6 +1121,182 @@ export function AnnotationStudioPage() {
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* ── 4. Intelligent Frame Harvester Telemetry Modal ── */}
+      {showHarvestModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '20px'
+        }}>
+          <div style={{
+            background: '#0b1120', border: '1px solid #1e293b',
+            borderRadius: '16px', width: '100%', maxWidth: '780px',
+            maxHeight: '90vh', overflowY: 'auto', padding: '28px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', padding: '10px', borderRadius: '10px', display: 'flex' }}>
+                  <ShieldCheck size={24} color="#fff" />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#f8fafc', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    Intelligent CCTV Frame Harvester Server
+                    <span style={{
+                      fontSize: '11px',
+                      background: harvestTelemetry?.status === 'running' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                      color: harvestTelemetry?.status === 'running' ? '#34d399' : '#94a3b8',
+                      border: `1px solid ${harvestTelemetry?.status === 'running' ? '#10b981' : '#475569'}`,
+                      padding: '2px 8px', borderRadius: '12px'
+                    }}>
+                      {harvestTelemetry?.status === 'running' ? '● LIVE HARVESTING' : '○ STOPPED'}
+                    </span>
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+                    Continuous data collection with 6-metric Computer Vision quality gate targeting 15,000+ clean frames
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setShowHarvestModal(false)}
+                style={{ background: '#1e293b', border: 'none', color: '#94a3b8', padding: '8px 12px', borderRadius: '8px', cursor: 'pointer' }}
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Target Progress Bar */}
+            <div style={{ background: 'rgba(30, 41, 59, 0.5)', border: '1px solid #334155', borderRadius: '12px', padding: '18px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '600', color: '#e2e8f0' }}>Target Milestone: 15,000+ Pristine Frames</span>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: '#10b981' }}>
+                  {harvestTelemetry?.current_clean_total?.toLocaleString()} / 15,000 ({harvestTelemetry?.progress_pct}%)
+                </span>
+              </div>
+              <div style={{ width: '100%', height: '12px', background: '#0f172a', borderRadius: '6px', overflow: 'hidden', border: '1px solid #1e293b' }}>
+                <div style={{
+                  width: `${Math.min(100, harvestTelemetry?.progress_pct || 0)}%`,
+                  height: '100%',
+                  background: 'linear-gradient(90deg, #10b981, #06b6d4, #3b82f6)',
+                  borderRadius: '6px',
+                  transition: 'width 0.4s ease'
+                }} />
+              </div>
+
+              {/* Action Controls */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                {harvestTelemetry?.status === 'running' ? (
+                  <button
+                    onClick={() => toggleHarvestServer('stop')}
+                    disabled={isHarvestActionLoading}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.4)',
+                      color: '#f87171', padding: '10px 18px', borderRadius: '8px',
+                      fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '8px'
+                    }}
+                  >
+                    <Square size={16} />
+                    {isHarvestActionLoading ? 'Stopping...' : 'Pause Harvest Server'}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => toggleHarvestServer('start')}
+                    disabled={isHarvestActionLoading}
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: '#fff', border: 'none', padding: '10px 18px', borderRadius: '8px',
+                      fontSize: '13px', fontWeight: '700', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                      boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                    }}
+                  >
+                    <Play size={16} />
+                    {isHarvestActionLoading ? 'Starting...' : 'Resume Intelligent Harvest'}
+                  </button>
+                )}
+                <button
+                  onClick={loadHarvestTelemetry}
+                  style={{
+                    background: '#1e293b', border: '1px solid #334155', color: '#94a3b8',
+                    padding: '10px 14px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '6px'
+                  }}
+                >
+                  <RefreshCw size={14} /> Refresh Stats
+                </button>
+              </div>
+            </div>
+
+            {/* Quality Rejection Breakdown Grid */}
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              🛡️ Computer Vision Quality Gate Metrics (Filtered Out)
+            </h4>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '20px' }}>
+              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ fontSize: '11px', color: '#f87171' }}>Motion / Optical Blur</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#f8fafc' }}>
+                  {harvestTelemetry?.rejected_blur?.toLocaleString() || 0}
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>Laplacian Var &lt; 42.0</div>
+              </div>
+
+              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ fontSize: '11px', color: '#fbbf24' }}>Static Duplicates</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#f8fafc' }}>
+                  {harvestTelemetry?.rejected_duplicate?.toLocaleString() || 0}
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>dHash Dist &lt; 8 bits</div>
+              </div>
+
+              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ fontSize: '11px', color: '#a78bfa' }}>Dead / Flat Feeds</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#f8fafc' }}>
+                  {harvestTelemetry?.rejected_dead_screen?.toLocaleString() || 0}
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>Std Dev &lt; 18.0</div>
+              </div>
+
+              <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', border: '1px solid #1e293b' }}>
+                <div style={{ fontSize: '11px', color: '#38bdf8' }}>Transmission Glitches</div>
+                <div style={{ fontSize: '18px', fontWeight: '700', color: '#f8fafc' }}>
+                  {harvestTelemetry?.rejected_packet_glitch?.toLocaleString() || 0}
+                </div>
+                <div style={{ fontSize: '10px', color: '#64748b' }}>Stripes / Packet Loss</div>
+              </div>
+            </div>
+
+            {/* Overall Harvest Summary */}
+            <div style={{ background: 'rgba(30, 41, 59, 0.4)', borderRadius: '10px', padding: '14px', border: '1px solid #1e293b' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#94a3b8', marginBottom: '6px' }}>
+                <span>Total Frames Evaluated: <b style={{ color: '#f8fafc' }}>{harvestTelemetry?.total_analyzed?.toLocaleString() || 0}</b></span>
+                <span>Quality Pass Rate: <b style={{ color: '#10b981' }}>{harvestTelemetry?.pass_rate_pct}%</b></span>
+                <span>Active Uptime: <b style={{ color: '#38bdf8' }}>{Math.round((harvestTelemetry?.uptime_seconds || 0) / 60)} mins</b></span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* Floating Collaborator Live Toast */}
+      {collabNotification && (
+        <div style={{
+          position: 'fixed', bottom: '24px', right: '24px', zIndex: 9999,
+          background: 'rgba(15, 23, 42, 0.95)', border: '1px solid #10b981',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5), 0 0 16px rgba(16, 185, 129, 0.25)',
+          padding: '12px 20px', borderRadius: '10px', color: '#f8fafc',
+          display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px', fontWeight: '600',
+          backdropFilter: 'blur(10px)', animation: 'slideIn 0.3s ease'
+        }}>
+          <span style={{ fontSize: '16px' }}>⚡</span>
+          <span>{collabNotification}</span>
         </div>
       )}
 

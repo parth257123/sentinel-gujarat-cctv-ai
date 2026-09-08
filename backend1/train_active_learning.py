@@ -23,35 +23,35 @@ def train_active_learning():
     print(f"📁 Dataset: {DATA_YAML}")
     print(f"💾 Checkpoints: {RUNS_DIR}\n")
 
-    # Load previous best model checkpoint (continuous active learning)
+    # Start fine-tuning from previous best Model v4 weights
     base_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best.pt")
     if not os.path.exists(base_model_path):
         base_model_path = os.path.join(os.path.dirname(BASE_DIR), "yolo11s.pt")
         if not os.path.exists(base_model_path):
             base_model_path = "yolo11s.pt"
 
-    print(f"📦 Loading base model: {base_model_path}")
+    print(f"📦 Loading base model weights: {base_model_path}")
     model = YOLO(base_model_path)
 
     start_time = time.time()
-    print("🚀 Starting training for 40 epochs...")
+    print("🚀 Starting training for 50 epochs (Active Learning Model v5)...")
     results = model.train(
         data=DATA_YAML,
-        epochs=40,
+        epochs=50,
         imgsz=640,
-        batch=8,
+        batch=12,
         device=device,
         workers=2,
         optimizer="AdamW",
-        lr0=0.0015,
+        lr0=0.0008,
         lrf=0.01,
         weight_decay=0.0005,
-        warmup_epochs=2,
+        warmup_epochs=3,
         box=7.5,
         cls=1.5,
         dfl=1.5,
         project=RUNS_DIR,
-        name="gujarat_active_v3",
+        name="gujarat_active_v5",
         exist_ok=True,
         verbose=True
     )
@@ -60,11 +60,11 @@ def train_active_learning():
     print(f"\n⏱️ Training finished in {elapsed:.1f} seconds ({elapsed/60:.1f} minutes)!")
 
     # Locate best weights
-    best_weights = os.path.join(RUNS_DIR, "gujarat_active_v3", "weights", "best.pt")
+    best_weights = os.path.join(RUNS_DIR, "gujarat_active_v5", "weights", "best.pt")
     if os.path.exists(best_weights):
         target_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best.pt")
-        backup_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best_v2.pt")
-        root_export_path = os.path.join(os.path.dirname(BASE_DIR), "GUJARAT_TRAFFIC_AI_MODEL_V2.pt")
+        backup_model_path = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best_v4.pt")
+        root_export_path = os.path.join(os.path.dirname(BASE_DIR), "GUJARAT_TRAFFIC_AI_MODEL_V5.pt")
 
         if os.path.exists(target_model_path):
             shutil.copy(target_model_path, backup_model_path)

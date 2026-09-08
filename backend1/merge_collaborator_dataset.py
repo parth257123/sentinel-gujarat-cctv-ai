@@ -7,7 +7,7 @@ from collections import Counter
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MASTER_DATASET = os.path.join(BASE_DIR, "datasets", "manual_annotated_gujarat")
-CLASSES = ["car", "auto", "bus", "truck", "two_wheeler", "pedestrian"]
+CLASSES = ["car", "auto", "passenger_vehicle", "goods_vehicle", "two_wheeler", "pedestrian", "others"]
 
 def merge_collaborator_data(input_path):
     print("=" * 60)

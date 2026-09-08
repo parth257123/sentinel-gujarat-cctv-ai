@@ -7,7 +7,8 @@ import {
 // Enhanced Camera Player with AI Stream Toggle, Optical Filters, Digital Zoom & Snapshot
 function VideoWallCell({ 
   cam, onSwapCamera, allCameras, isFocused, onToggleFocus, gridSize, 
-  globalAiMode, onPromoteToMaster, isMasterSlot, streamSource = 'local', customRtspUrl = '' 
+  globalAiMode, onPromoteToMaster, isMasterSlot, streamSource = 'local', customRtspUrl = '',
+  qualityData
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -131,11 +132,29 @@ function VideoWallCell({
                 background: 'transparent', border: 'none', color: '#f4f4f5',
                 fontSize: isCompact ? 9.5 : 11, fontWeight: 700, display: 'flex',
                 alignItems: 'center', gap: 4, cursor: 'pointer', padding: 0,
-                maxWidth: isCompact ? 110 : 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                maxWidth: isCompact ? 130 : 230, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
               }}
               title="Click to swap camera"
             >
               <span style={{ color: '#60a5fa', fontFamily: 'var(--font-mono)' }}>{cam.id}</span>
+              {qualityData && (
+                <span 
+                  style={{
+                    fontSize: 8,
+                    fontWeight: 800,
+                    padding: '1px 5px',
+                    borderRadius: 3,
+                    background: `${qualityData.quality_color}25`,
+                    color: qualityData.quality_color,
+                    border: `1px solid ${qualityData.quality_color}60`,
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                  title={`ANPR Assessment: ${qualityData.quality_label}\nPlate Readability: ${qualityData.readability_pct}%\nAvg Confidence: ${qualityData.avg_confidence}%\nSharpness: ${qualityData.avg_sharpness}`}
+                >
+                  {qualityData.quality === 'ANPR_READY' ? '🟢 ANPR' : qualityData.quality === 'PARTIAL_ANPR' ? '🟡 PARTIAL' : '🔴 COUNT ONLY'}
+                </span>
+              )}
               <span>{cam.name}</span>
               <ChevronDown size={11} style={{ opacity: 0.6, flexShrink: 0 }} />
             </button>
@@ -428,6 +447,21 @@ export function VideoWallPage({ cameras }) {
   const [isAutoPatrol, setIsAutoPatrol] = useState(false);
   const [patrolProgress, setPatrolProgress] = useState(0);
   const patrolTimerRef = useRef(null);
+  const [cameraQualities, setCameraQualities] = useState({});
+
+  // Fetch camera ANPR quality classification
+  useEffect(() => {
+    fetch('http://localhost:8000/api/cameras/quality')
+      .then(res => res.json())
+      .then(data => {
+        const map = {};
+        (data.cameras || []).forEach(c => {
+          map[c.camera_id] = c;
+        });
+        setCameraQualities(map);
+      })
+      .catch(err => console.log('Camera quality fetch error:', err));
+  }, []);
 
   // Initialize camera slots based on active preset
   useEffect(() => {
@@ -700,6 +734,20 @@ export function VideoWallPage({ cameras }) {
             {displayedCameras.length} Feeds Active
           </span>
 
+          {Object.keys(cameraQualities).length > 0 && (
+            <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+              <span style={{ fontSize: 9.5, color: '#10b981', background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)', padding: '3px 7px', borderRadius: 4, fontWeight: 700 }} title="Cameras with high resolution & optimal angle for reading number plates">
+                🟢 {Object.values(cameraQualities).filter(q => q.quality === 'ANPR_READY').length} ANPR
+              </span>
+              <span style={{ fontSize: 9.5, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.25)', padding: '3px 7px', borderRadius: 4, fontWeight: 700 }} title="Cameras readable in daylight; partial coverage">
+                🟡 {Object.values(cameraQualities).filter(q => q.quality === 'PARTIAL_ANPR').length} Partial
+              </span>
+              <span style={{ fontSize: 9.5, color: '#ef4444', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', padding: '3px 7px', borderRadius: 4, fontWeight: 700 }} title="Cameras suitable for traffic flow/vehicle counting only (unreadable plates)">
+                🔴 {Object.values(cameraQualities).filter(q => q.quality === 'DETECTION_ONLY').length} Count Only
+              </span>
+            </div>
+          )}
+
           <button
             onClick={toggleBrowserFullscreen}
             title="Toggle Control Room Fullscreen"
@@ -728,6 +776,7 @@ export function VideoWallPage({ cameras }) {
             isMasterSlot={gridSize === '1+5' && idx === 0}
             streamSource={streamSource}
             customRtspUrl={customRtspUrl}
+            qualityData={cameraQualities[cam.id]}
           />
         ))}
 

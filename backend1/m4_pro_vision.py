@@ -25,9 +25,10 @@ SNAPSHOTS_DIR = os.path.join(BASE_DIR, "snapshots")
 os.makedirs(SNAPSHOTS_DIR, exist_ok=True)
 
 VIDEO_SOURCES = [
-    os.path.join(VIDEOS_DIR, "traffic3.mp4"),
-    os.path.join(VIDEOS_DIR, "traffic2.mp4"),
-    os.path.join(VIDEOS_DIR, "traffic1.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam16_visat.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam13_cn_vidhyalaya.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam14_delight_junction.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam6_ashram_road.mp4"),
 ]
 
 # Color ranges for vehicle HSV color classification

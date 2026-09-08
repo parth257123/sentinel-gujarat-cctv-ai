@@ -24,9 +24,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VIDEOS_DIR = os.path.join(BASE_DIR, "videos")
 
 VIDEO_SOURCES = [
-    os.path.join(VIDEOS_DIR, "traffic3.mp4"),
-    os.path.join(VIDEOS_DIR, "traffic2.mp4"),
-    os.path.join(VIDEOS_DIR, "traffic1.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam16_visat.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam13_cn_vidhyalaya.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam14_delight_junction.mp4"),
+    os.path.join(VIDEOS_DIR, "gujarat_cam6_ashram_road.mp4"),
 ]
 
 class RealCCTVWorker:
@@ -101,12 +102,17 @@ class RealCCTVWorker:
                                     except Exception:
                                         pass
 
+                                from vahan_registry import lookup_vehicle
+                                v_info = lookup_vehicle(det["plate"], detected_vtype=det["vehicle_type"], detected_color=det.get("color", "White"))
+
                                 db_det = models.Detection(
                                     plate=det["plate"],
                                     plate_status=det.get("plate_status", "CONFIRMED"),
                                     camera_id=cam_id,
                                     confidence=det["confidence"],
                                     vehicle_type=det["vehicle_type"],
+                                    make=v_info.get("make", "Toyota"),
+                                    model=v_info.get("model", "Fortuner"),
                                     color=det.get("color", "White"),
                                     sharpness=det.get("sharpness", 250.0),
                                     embedding=emb_json,

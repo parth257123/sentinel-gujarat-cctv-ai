@@ -41,43 +41,16 @@ class VehicleReIDEngine:
             return None
 
     def detect_color(self, crop):
-        """Determines the dominant body color of the vehicle."""
+        """Determines the dominant body color of the vehicle using HSV color analysis."""
         if crop is None or crop.size == 0:
             return "Unknown"
         try:
-            # Crop center 50% to avoid tires and background pavement
+            from vehicle_color_classifier import extract_vehicle_color
             h, w = crop.shape[:2]
-            center = crop[int(h * 0.25):int(h * 0.75), int(w * 0.25):int(w * 0.75)]
-            if center.size == 0:
-                center = crop
-
-            hsv = cv2.cvtColor(center, cv2.COLOR_BGR2HSV)
-            h_chan, s_chan, v_chan = cv2.split(hsv)
-
-            avg_s = np.mean(s_chan)
-            avg_v = np.mean(v_chan)
-            avg_h = np.mean(h_chan)
-
-            if avg_v < 45:
-                return "Black"
-            elif avg_s < 35 and avg_v > 180:
-                return "White"
-            elif avg_s < 45 and 45 <= avg_v <= 180:
-                return "Silver/Grey"
-            
-            # Chromatic colors
-            if (avg_h < 10 or avg_h > 170):
-                return "Red"
-            elif 15 <= avg_h < 35:
-                return "Yellow/Orange"
-            elif 35 <= avg_h < 85:
-                return "Green"
-            elif 85 <= avg_h < 135:
-                return "Blue"
-            else:
-                return "Maroon/Dark"
+            color = extract_vehicle_color(crop, (0, 0, w, h))
+            return color if color != "Unknown" else "White"
         except Exception:
-            return "Silver"
+            return "White"
 
     @staticmethod
     def compute_similarity(emb1, emb2):

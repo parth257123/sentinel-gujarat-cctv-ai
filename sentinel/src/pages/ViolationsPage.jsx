@@ -31,8 +31,9 @@ function SpeedRadarConsole({ cameras = [] }) {
       });
     }
     return [
-      { id: '1', name: 'CAM-001 Chimanbhai Bridge (Ahmedabad)' },
-      { id: '5', name: 'CAM-005 Visat T-Junction (Ahmedabad)' },
+      { id: '1', name: 'CAM-001 01 Chiman bhai Bridge (Ahmedabad)' },
+      { id: '5', name: 'CAM-005 05 Visat teen Rasta (Ahmedabad)' },
+      { id: '13', name: 'CAM-013 13 CN Vidhyalaya (Ahmedabad)' },
     ];
   }, [cameras]);
 

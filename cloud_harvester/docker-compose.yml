@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  sentinel-harvester:
+    build: .
+    container_name: sentinel_gujarat_harvester
+    restart: unless-stopped
+    volumes:
+      - ./harvested_data:/app/harvested_data
+    environment:
+      - PYTHONUNBUFFERED=1

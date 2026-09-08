@@ -432,7 +432,7 @@ class SaveAnnotationRequest(BaseModel):
     boxes: List[Dict[str, Any]]
 
 @app.get("/api/annotation/frames")
-def get_annotation_frames(limit: int = 5000):
+def get_annotation_frames(limit: int = 25000):
     """Lists harvested frames available for manual annotation."""
     return annotation_engine.list_available_frames(limit=limit)
 
@@ -458,9 +458,21 @@ def get_ai_draft_boxes(data: Dict[str, Any]):
     return {"status": "success", "boxes": boxes}
 
 @app.post("/api/annotation/save")
-def save_annotation(req: SaveAnnotationRequest):
+async def save_annotation(req: SaveAnnotationRequest):
     """Saves user annotations into standard YOLO format dataset."""
     res = annotation_engine.save_manual_annotation(req.image_path, req.boxes, split=req.split)
+    base_id = res.get("base_id", os.path.splitext(os.path.basename(req.image_path))[0])
+    try:
+        await manager.broadcast({
+            "type": "annotation_saved",
+            "base_id": base_id,
+            "image_path": req.image_path,
+            "boxes_count": len(req.boxes),
+            "split": req.split,
+            "boxes": req.boxes
+        })
+    except Exception as e:
+        print(f"WS broadcast warning: {e}")
     return res
 
 @app.get("/api/annotation/stats")
@@ -540,6 +552,77 @@ def list_scaled_datasets():
                 "modified": datetime.datetime.fromtimestamp(os.path.getmtime(zp)).strftime("%Y-%m-%d %H:%M:%S")
             })
     return {"packages": packages}
+
+# ─── Intelligent Frame Harvest Server APIs ──────────────────────────────
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+from intelligent_harvest_server import harvest_server
+try:
+    from intelligent_night_harvest_server import night_harvester
+except Exception:
+    night_harvester = None
+
+@app.get("/api/harvest/status")
+def get_harvest_status():
+    """Returns telemetry of the intelligent frame harvest server and quality metrics."""
+    with harvest_server._telemetry_lock:
+        tel = dict(harvest_server.telemetry)
+    # Check if global telemetry file exists
+    gt_file = os.path.join(BASE_DIR, "harvest_telemetry.json")
+    if os.path.exists(gt_file):
+        try:
+            with open(gt_file, "r") as f:
+                tel.update(json.load(f))
+        except Exception:
+            pass
+    return {"status": "success", "telemetry": tel}
+
+@app.post("/api/harvest/start")
+def start_harvest_server():
+    """Launches the intelligent frame harvest server in the background."""
+    if not harvest_server.is_running:
+        harvest_server.start_background()
+        return {"status": "started", "message": "Intelligent harvest server started."}
+    return {"status": "already_running", "message": "Harvest server is already running."}
+
+@app.post("/api/harvest/stop")
+def stop_harvest_server():
+    """Stops the intelligent frame harvest server."""
+    harvest_server.stop()
+    if night_harvester and night_harvester.is_running:
+        night_harvester.stop()
+    return {"status": "stopping", "message": "Signal sent to stop harvest server."}
+
+@app.get("/api/harvest/night/status")
+def get_night_harvest_status():
+    """Returns real-time telemetry of the specialized night harvester."""
+    if night_harvester:
+        return {"status": "success", "telemetry": dict(night_harvester.telemetry)}
+    nt_file = os.path.join(BASE_DIR, "harvest_night_telemetry.json")
+    if os.path.exists(nt_file):
+        try:
+            with open(nt_file, "r") as f:
+                return {"status": "success", "telemetry": json.load(f)}
+        except Exception:
+            pass
+    return {"status": "idle", "telemetry": {"status": "stopped", "saved_night_frames": 0}}
+
+@app.post("/api/harvest/night/start")
+def start_night_harvest():
+    """Launches the specialized night harvester with active vehicle quality gate."""
+    if night_harvester:
+        if not night_harvester.is_running:
+            night_harvester.start_background()
+            return {"status": "started", "message": "Night harvest server started."}
+        return {"status": "already_running", "message": "Night harvest server is already running."}
+    return {"status": "error", "message": "Night harvester module not loaded."}
+
+@app.post("/api/harvest/night/stop")
+def stop_night_harvest():
+    """Stops the specialized night harvester."""
+    if night_harvester and night_harvester.is_running:
+        night_harvester.stop()
+        return {"status": "stopping", "message": "Signal sent to stop night harvester."}
+    return {"status": "stopped", "message": "Night harvester was not running."}
 
 @app.post("/upload_video")
 async def upload_video(background_tasks: BackgroundTasks, file: UploadFile = File(...), db: Session = Depends(get_db)):
