@@ -24,6 +24,9 @@ Classes (10):
 
 import os
 import sys
+import glob
+import json
+import yaml
 import shutil
 import argparse
 import torch
@@ -34,9 +37,24 @@ MODELS_DIR = os.path.join(BASE_DIR, "models")
 DEFAULT_DATASET_YAML = os.path.join(BASE_DIR, "datasets", "manual_annotated_gujarat", "data.yaml")
 FINAL_MODEL_PATH = os.path.join(MODELS_DIR, "sentinel_10class_traffic_best.pt")
 
+CLASSES = [
+    "pedestrian",         # 0
+    "car",                # 1
+    "two_wheeler",        # 2
+    "heavy_machinery",    # 3
+    "emergency_vehicle",  # 4
+    "van",                # 5
+    "truck",              # 6
+    "bus",                # 7
+    "auto_rickshaw",      # 8
+    "others"              # 9
+]
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Train 10-Class Sentinel Indian Traffic AI")
     parser.add_argument("--data", type=str, default=DEFAULT_DATASET_YAML, help="Path to dataset data.yaml")
+    parser.add_argument("--mode", type=str, default="full", choices=["full", "manual_only", "sample"],
+                        help="Training subset: 'manual_only' (only frames manually verified by user/friend), 'full' (all frames), 'sample' (benchmark 100 frames)")
     parser.add_argument("--model", type=str, default="yolo12n.pt", help="Base model weights")
     parser.add_argument("--epochs", type=int, default=35, help="Number of training epochs")
     parser.add_argument("--batch", type=int, default=16, help="Batch size")
@@ -49,6 +67,65 @@ def train():
     args = parse_args()
     os.makedirs(MODELS_DIR, exist_ok=True)
     DATASET_YAML = args.data
+    dataset_dir = os.path.dirname(DEFAULT_DATASET_YAML)
+
+    # 1. Handle dataset subset selection
+    if args.mode == "sample":
+        sample_yaml = os.path.join(os.path.dirname(BASE_DIR), "sample_dataset_10class", "data.yaml")
+        if os.path.exists(sample_yaml):
+            DATASET_YAML = sample_yaml
+            print(f"🎯 Selected mode: sample ({sample_yaml})")
+    elif args.mode == "manual_only":
+        manifest_path = os.path.join(dataset_dir, "manually_verified_manifest.json")
+        verified_bases = set()
+        if os.path.exists(manifest_path):
+            try:
+                with open(manifest_path, "r") as mf:
+                    verified_bases = set(json.load(mf).keys())
+            except Exception:
+                pass
+
+        # Also include user manual backup session if manifest is small
+        user_backup_dir = os.path.join(dataset_dir, "labels_backup_user_manual_1to71")
+        if os.path.exists(user_backup_dir):
+            for f in glob.glob(os.path.join(user_backup_dir, "**", "*.txt"), recursive=True):
+                verified_bases.add(os.path.splitext(os.path.basename(f))[0])
+
+        if not verified_bases:
+            print("⚠️ No manually verified frames found in manifest! Falling back to full dataset.")
+        else:
+            # Build train_verified.txt and val_verified.txt
+            train_paths = []
+            val_paths = []
+            for base in sorted(verified_bases):
+                for split, p_list in [("train", train_paths), ("val", val_paths)]:
+                    lbl_p = os.path.join(dataset_dir, "labels", split, f"{base}.txt")
+                    img_p = os.path.join(dataset_dir, "images", split, f"{base}.jpg")
+                    if os.path.exists(lbl_p) and os.path.exists(img_p):
+                        p_list.append(os.path.abspath(img_p))
+
+            train_txt = os.path.join(dataset_dir, "train_verified.txt")
+            val_txt = os.path.join(dataset_dir, "val_verified.txt")
+            with open(train_txt, "w") as f:
+                f.write("\n".join(train_paths) + "\n")
+            with open(val_txt, "w") as f:
+                f.write("\n".join(val_paths) + "\n")
+
+            # Create data_manual_verified.yaml
+            manual_yaml_path = os.path.join(dataset_dir, "data_manual_verified.yaml")
+            manual_yaml_content = {
+                "path": dataset_dir,
+                "train": "train_verified.txt",
+                "val": "val_verified.txt",
+                "nc": len(CLASSES),
+                "names": {i: name for i, name in enumerate(CLASSES)}
+            }
+            with open(manual_yaml_path, "w") as f:
+                yaml.dump(manual_yaml_content, f, default_flow_style=False)
+
+            DATASET_YAML = manual_yaml_path
+            print(f"🎯 Selected mode: manual_only | Train: {len(train_paths)} frames, Val: {len(val_paths)} frames")
+
     
     if not os.path.exists(DATASET_YAML):
         print(f"❌ Dataset YAML not found at {DATASET_YAML}")

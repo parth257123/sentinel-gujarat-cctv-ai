@@ -282,6 +282,25 @@ class AnnotationEngine:
         with open(dst_lbl, "w") as f:
             f.write("\n".join(lines) + "\n")
 
+        # Record into manually verified manifest
+        manifest_path = os.path.join(DATASET_DIR, "manually_verified_manifest.json")
+        try:
+            manifest = {}
+            if os.path.exists(manifest_path):
+                with open(manifest_path, "r") as mf:
+                    manifest = json.load(mf)
+            manifest[base_id] = {
+                "timestamp": time.time(),
+                "split": split,
+                "box_count": len(boxes),
+                "image_path": dst_img,
+                "verified": True
+            }
+            with open(manifest_path, "w") as mf:
+                json.dump(manifest, mf, indent=2)
+        except Exception:
+            pass
+
         return {
             "status": "success",
             "saved_image": dst_img,

@@ -1,0 +1,26 @@
+{
+  "timestamp": 1788938579.16298,
+  "date_ist": "2026-09-09 12:52:59",
+  "total_initial_frames": 19407,
+  "total_purged_duplicates": 10147,
+  "total_purged_labels": 10147,
+  "remaining_unique_frames": 9260,
+  "protected_manual_frames_count": 833,
+  "purged_by_camera": {
+    "cam01": 35,
+    "cam02": 706,
+    "cam16": 6722,
+    "cam03": 3,
+    "cam04": 31,
+    "cam12": 3,
+    "cam05": 1,
+    "cam07": 6,
+    "cam08": 3,
+    "cam10": 8,
+    "cam11": 6,
+    "cam13": 1058,
+    "cam14": 1528,
+    "cam15": 10,
+    "cam30": 27
+  }
+}
