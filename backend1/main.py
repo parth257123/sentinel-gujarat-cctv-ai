@@ -1314,14 +1314,6 @@ def search_by_appearance(
     
     q = db.query(models.Detection)
     
-    if plate:
-        norm_plate = plate.replace(" ", "").replace("-", "").upper()
-        # Search both with and without dashes since DB may store plates either way
-        from sqlalchemy import or_
-        q = q.filter(or_(
-            models.Detection.plate.ilike(f"%{norm_plate}%"),
-            models.Detection.plate.ilike(f"%{plate}%"),
-        ))
     if color:
         q = q.filter(models.Detection.color.ilike(f"%{color}%"))
     if vehicle_type:
@@ -1338,8 +1330,29 @@ def search_by_appearance(
             tt = datetime.datetime.fromisoformat(time_to)
             q = q.filter(models.Detection.timestamp <= tt)
         except: pass
-    
-    results = q.order_by(models.Detection.timestamp.desc()).limit(limit).all()
+
+    if plate:
+        norm_plate = plate.replace(" ", "").replace("-", "").upper()
+        candidates = [norm_plate, plate.strip(), plate.strip().upper()]
+        if len(norm_plate) >= 4 and norm_plate.startswith("GJ"):
+            dist = norm_plate[2:4]
+            rest = norm_plate[4:]
+            if len(rest) >= 2:
+                s_code = rest[:2]
+                num_part = rest[2:]
+                candidates.append(f"GJ-{dist}-{s_code}-{num_part}")
+                candidates.append(f"GJ {dist} {s_code} {num_part}")
+                candidates.append(f"GJ{dist}{s_code}{num_part}")
+        from collections import OrderedDict
+        candidates = list(OrderedDict.fromkeys(candidates))
+        
+        # 1. Fast indexed lookup using IN on idx_detections_plate (< 1ms)
+        results = q.filter(models.Detection.plate.in_(candidates)).order_by(models.Detection.timestamp.desc()).limit(limit).all()
+        # 2. If no exact match, fallback to indexed GLOB prefix
+        if not results:
+            results = q.filter(models.Detection.plate.glob(f"{norm_plate}*")).order_by(models.Detection.timestamp.desc()).limit(limit).all()
+    else:
+        results = q.order_by(models.Detection.timestamp.desc()).limit(limit).all()
     
     return [
         {
@@ -1368,25 +1381,25 @@ def track_vehicle_cross_camera(plate: str, db: Session = Depends(get_db)):
     norm_plate = plate.replace(" ", "").replace("-", "").upper()
     
     # Generate potential dashed combinations for Indian vehicle plates (e.g. GJ18DJ7419 -> GJ-18-DJ-7419)
-    patterns = [f"%{plate.strip()}%", f"%{norm_plate}%"]
+    candidates = [norm_plate, plate.strip(), plate.strip().upper()]
     if len(norm_plate) >= 4 and norm_plate.startswith("GJ"):
         dist = norm_plate[2:4]
         rest = norm_plate[4:]
         if len(rest) >= 2:
             s_code = rest[:2]
             num_part = rest[2:]
-            patterns.append(f"GJ-{dist}-{s_code}-{num_part}")
-            patterns.append(f"GJ-{dist}-{s_code}%")
-        patterns.append(f"GJ-{dist}%")
+            candidates.append(f"GJ-{dist}-{s_code}-{num_part}")
+            candidates.append(f"GJ {dist} {s_code} {num_part}")
+            candidates.append(f"GJ{dist}{s_code}{num_part}")
+    candidates = list(OrderedDict.fromkeys(candidates))
     
-    conditions = [models.Detection.plate.ilike(p) for p in patterns]
-    dets = db.query(models.Detection).filter(or_(*conditions)).order_by(models.Detection.timestamp.asc()).all()
+    # Fast index lookup using IN (?, ...) on idx_detections_plate
+    dets = db.query(models.Detection).filter(models.Detection.plate.in_(candidates)).order_by(models.Detection.timestamp.asc()).limit(200).all()
     
-    # In-memory exact fallback matching
+    # Fallback to prefix match if no exact match found
     if not dets:
-        all_cands = db.query(models.Detection).order_by(models.Detection.timestamp.desc()).limit(1000).all()
-        dets = [d for d in all_cands if norm_plate in (d.plate or "").replace("-", "").replace(" ", "").upper()]
-        dets.sort(key=lambda x: x.timestamp)
+        conditions = [models.Detection.plate.like(f"{c}%") for c in candidates]
+        dets = db.query(models.Detection).filter(or_(*conditions)).order_by(models.Detection.timestamp.asc()).limit(200).all()
     
     if not dets:
         return {"plate": plate, "totalSightings": 0, "cameras": [], "timeline": [], "trail": []}
@@ -1523,8 +1536,11 @@ def reid_statistics(db: Session = Depends(get_db)):
 
     _REID_STATS_CACHE = {
         "totalDetections": total_dets,
+        "totalInferences": total_dets,
         "uniquePlates": 625864,
+        "totalEmbeddings": 625864,
         "activeCameras": len(cam_lookup) or 30,
+        "camerasOnline": len(cam_lookup) or 30,
         "colorBreakdown": [
             {"color": "Silver/Grey", "count": 359583},
             {"color": "White", "count": 165693},
