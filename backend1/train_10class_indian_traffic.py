@@ -16,7 +16,7 @@ Classes (10):
   3: heavy_machinery
   4: emergency_vehicle
   5: van
-  6: truck
+  6: truck/tempo
   7: bus
   8: auto_rickshaw
   9: others
@@ -44,7 +44,7 @@ CLASSES = [
     "heavy_machinery",    # 3
     "emergency_vehicle",  # 4
     "van",                # 5
-    "truck",              # 6
+    "truck/tempo",        # 6
     "bus",                # 7
     "auto_rickshaw",      # 8
     "others"              # 9
@@ -189,8 +189,11 @@ def train():
     chosen = best_weights if os.path.exists(best_weights) else last_weights
     if os.path.exists(chosen):
         shutil.copy(chosen, FINAL_MODEL_PATH)
+        live_active_weights = os.path.join(MODELS_DIR, "sentinel_indian_traffic_best.pt")
+        shutil.copy(chosen, live_active_weights)
         print(f"\n🎉 TRAINING COMPLETED!")
         print(f"📁 Best model saved to: {FINAL_MODEL_PATH}")
+        print(f"📁 Live engine weights updated at: {live_active_weights}")
         
         # Verify model
         trained = YOLO(FINAL_MODEL_PATH)

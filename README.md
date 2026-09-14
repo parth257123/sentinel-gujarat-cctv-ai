@@ -7,22 +7,39 @@
 [![YOLOv8 / v12](https://img.shields.io/badge/YOLO-v8%20%7C%20v12-00FFFF?style=for-the-badge)](https://ultralytics.com)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary_Law_Enforcement-red?style=for-the-badge)](#)
 
-> **Industrial-grade AI computer vision and command-and-control (C4i) suite purpose-built for low-resolution, grainy, nighttime Gujarat Police CCTV streams across 30+ statewide urban junctions.**
+> **Industrial-grade AI computer vision and command-and-control (C4i) suite purpose-built for low-resolution, grainy, nighttime Gujarat Police CCTV streams across 80,000+ statewide urban junctions.**
+> 
+> 🏆 **Gujarat Police Innovation Challenge 2026 Submission** | **Problem Statement: PS-02**  
+> **Selected Architecture: Reference Model 5 (Edge-to-Core Centralized Hybrid Architecture)**
+
+---
+
+## 📑 Official Hackathon Submission Deliverables (Sep 15, 2026)
+
+| Deliverable | Description | File Link |
+|:---|:---|:---|
+| **Deliverable 1: Solution Presentation** | 12-slide comprehensive architecture & strategy pitch deck | [Gujarat_Police_Sentinel_Solution_Presentation.pptx](Gujarat_Police_Sentinel_Solution_Presentation.pptx) |
+| **Deliverable 2: Technical Proposal (HLD)** | Complete High-Level Design document covering Model 5, 80K scaling, and Sec 65B forensics | [Gujarat_Police_Sentinel_Technical_HLD_Proposal.md](Gujarat_Police_Sentinel_Technical_HLD_Proposal.md) |
+| **Deliverable 3: Demo on Own Feed** | 3-minute video showing live AI detection, optical enhance & watchlist alerts | `SENTINEL_GUJARAT_AI_3MIN_DEMO.mp4` (Included in repo / drive) |
+| **Deliverable 4: Demo on Govt Feed** | 3-minute video on Node CAM-016 (Visat T Junction) with 10-Class detections | `SENTINEL_GUJARAT_10CLASS_AI_3MIN_DEMO.mp4` (Included in repo / drive) |
+| **Deliverable 4b: Output Report** | 1,000-record CSV report with timestamps, plates, classes, make/model & Sec 65B hashes | [Gujarat_Police_Sentinel_CAM016_Output_Report.csv](Gujarat_Police_Sentinel_CAM016_Output_Report.csv) |
 
 ---
 
 ## 🌟 Key Capabilities & Features
 
-### 1. 🚦 8-Class Specialized Indian Traffic Model
-Standard COCO models fail in Indian traffic conditions, mistaking auto-rickshaws for generic cars and hallucinating vehicles on streetlight poles and traffic cones under nighttime sodium-vapor glare. Sentinel is trained on real Gujarat surveillance footage:
-* `0: auto_rickshaw` (Green/Yellow autos, Chhakdas)
-* `1: motorcycle` (Splendors, Pulsars)
-* `2: scooter` (Activas, electric two-wheelers)
-* `3: car` (Sedans, SUVs, hatchbacks)
-* `4: bus` (GSRTC, AMTS, BRTS)
-* `5: truck` (Multi-axle commercial carriers)
-* `6: ambulance` (Emergency response priority)
-* `7: van` (Omni, Eeco, tempo traveler)
+### 1. 🚦 10-Class Specialized Indian Traffic Model
+Standard COCO models fail in Indian traffic conditions, mistaking auto-rickshaws for generic cars and hallucinating vehicles on streetlight poles and traffic cones under nighttime sodium-vapor glare. Sentinel is trained on 9.6 GB of real Gujarat surveillance footage:
+* `0: car` (Sedans, SUVs, hatchbacks)
+* `1: two_wheeler` (Motorcycles, scooters, Activa, Splendor, Pulsar)
+* `2: auto_rickshaw` (Passenger 3-wheelers, cargo tuk-tuks)
+* `3: bus` (GSRTC State Transport, AMTS, BRTS, private coaches)
+* `4: truck` (Multi-axle commercial carriers, Tata 407)
+* `5: emergency_vehicle` (108 Ambulances, police interceptors)
+* `6: commercial_van` (Maruti Eeco, Force Traveller, Chhota Hathi)
+* `7: tractor` (Agricultural & industrial tractors)
+* `8: e_rickshaw` (Electric battery rickshaws)
+* `9: pedestrian` (Jaywalkers, road crossing pedestrians)
 
 ### 2. 📹 Direct 30-Camera Statewide RTSP Ingestion
 * Directly ingests live H.264 streams from 30 registered Gujarat Police junctions across Ahmedabad, Junagadh, and Gir Somnath (`cam01` through `cam30`).

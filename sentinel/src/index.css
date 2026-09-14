@@ -387,3 +387,20 @@ body { font-family: var(--font-family); background: var(--bg-primary); color: va
   top: 6px !important;
   right: 8px !important;
 }
+
+@keyframes radar-glow {
+  0% { fill-opacity: 0.12; }
+  50% { fill-opacity: 0.28; }
+  100% { fill-opacity: 0.12; }
+}
+.radar-cone-pulse {
+  animation: radar-glow 2.5s infinite ease-in-out;
+}
+@keyframes roadblock-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(239, 68, 68, 0.6); }
+  50% { box-shadow: 0 0 24px rgba(239, 68, 68, 1); }
+}
+.roadblock-active-glow {
+  animation: roadblock-pulse 1.2s infinite ease-in-out;
+}
+

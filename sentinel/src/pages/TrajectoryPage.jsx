@@ -4,9 +4,10 @@ import {
   Car, ChevronRight, AlertTriangle, Zap, Route, RefreshCw, CheckCircle2, 
   XCircle, Compass, Gauge, Layers, ShieldAlert, ArrowRight, Lock,
   Building2, Phone, Siren, Activity, PhoneCall, Check, Filter,
-  CheckCircle, RadioTower, Truck, HeartPulse, Send, AlertOctagon
+  CheckCircle, RadioTower, Truck, HeartPulse, Send, AlertOctagon,
+  Sliders, Eye, Ban, ShieldCheck, LocateFixed
 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, Polygon, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
 const API_BASE = 'http://localhost:8000';
@@ -102,6 +103,35 @@ const createPcrPatrolIcon = (isDispatched) => L.divIcon({
   iconAnchor: [26, 11]
 });
 
+const createInterceptCameraIcon = (eta, isSealed) => L.divIcon({
+  className: `tactical-intercept-marker ${isSealed ? 'roadblock-active-glow' : ''}`,
+  html: `
+    <div style="position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;">
+      <div style="background:${isSealed ? 'linear-gradient(135deg,#dc2626,#991b1b)' : 'linear-gradient(135deg,#0284c7,#0369a1)'};border:2px solid ${isSealed ? '#fecaca' : '#7dd3fc'};border-radius:8px;padding:3px 7px;display:flex;align-items:center;gap:4px;box-shadow:0 0 16px ${isSealed ? 'rgba(239,68,68,0.95)' : 'rgba(14,165,233,0.85)'};white-space:nowrap;z-index:2;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"></path>
+          <circle cx="12" cy="13" r="3"></circle>
+        </svg>
+        <span style="color:#fff;font-size:10px;font-weight:900;font-family:monospace;">${isSealed ? '🚨 ROADBLOCK ACTIVE' : `ETA ${eta}`}</span>
+      </div>
+      <div style="width:2px;height:6px;background:${isSealed ? '#fecaca' : '#7dd3fc'};"></div>
+    </div>
+  `,
+  iconSize: [140, 32],
+  iconAnchor: [70, 32]
+});
+
+const createRadialCameraIcon = () => L.divIcon({
+  className: 'tactical-radial-marker',
+  html: `
+    <div style="width:14px;height:14px;border-radius:50%;background:#334155;border:2px solid #64748b;display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(100,116,139,0.5);">
+      <div style="width:4px;height:4px;border-radius:50%;background:#94a3b8;"></div>
+    </div>
+  `,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7]
+});
+
 function PlateBadge({ plate, size = 'normal' }) {
   const fs = size === 'large' ? 14 : 12;
   return (
@@ -117,11 +147,14 @@ export function TrajectoryPage() {
   const [prediction, setPrediction] = useState(null);
   const [recentDetections, setRecentDetections] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('ALL'); // 'ALL' | 'POLICE' | 'TOLL' | 'TRAUMA' | 'PCR'
+  const [activeCategory, setActiveCategory] = useState('ALL'); // 'ALL' | 'CAMERAS' | 'POLICE' | 'TOLL' | 'TRAUMA' | 'PCR'
   const [alertedStations, setAlertedStations] = useState(new Set());
   const [lockedTolls, setLockedTolls] = useState(new Set());
   const [dispatchedPCRs, setDispatchedPCRs] = useState(new Set());
   const [alertingId, setAlertingId] = useState(null);
+  const [radiusKm, setRadiusKm] = useState(8);
+  const [coneAngle, setConeAngle] = useState(60);
+  const [sealedJunctions, setSealedJunctions] = useState(new Set());
 
   // Load live recent detections on mount
   useEffect(() => {
@@ -132,16 +165,16 @@ export function TrajectoryPage() {
           setRecentDetections(data.records);
           const firstPlate = data.records[0].plate;
           setPlateQuery(firstPlate);
-          predictPlate(firstPlate);
+          predictPlate(firstPlate, 8, 60);
         }
       })
       .catch(() => {
-        setPlateQuery('GJ-01-DJ-5574');
-        predictPlate('GJ-01-DJ-5574');
+        setPlateQuery('GJ01AB1234');
+        predictPlate('GJ01AB1234', 8, 60);
       });
   }, []);
 
-  const predictPlate = (plateToPredict) => {
+  const predictPlate = (plateToPredict, rKm = radiusKm, cAngle = coneAngle) => {
     const query = plateToPredict || plateQuery;
     if (!query.trim()) return;
     setLoading(true);
@@ -150,7 +183,7 @@ export function TrajectoryPage() {
     setLockedTolls(new Set());
     setDispatchedPCRs(new Set());
 
-    fetch(`${API_BASE}/api/trajectory/predict/${encodeURIComponent(query.trim())}`)
+    fetch(`${API_BASE}/api/trajectory/predict/${encodeURIComponent(query.trim())}?radius_km=${rKm}&cone_angle=${cAngle}`)
       .then(r => {
         if (!r.ok) throw new Error('Not found');
         return r.json();
@@ -165,7 +198,32 @@ export function TrajectoryPage() {
       });
   };
 
-  const handlePredict = () => predictPlate(plateQuery);
+  const handlePredict = () => predictPlate(plateQuery, radiusKm, coneAngle);
+
+  const handleRadiusChange = (newRadius) => {
+    setRadiusKm(newRadius);
+    const targetPlate = prediction?.plate || plateQuery;
+    if (targetPlate) {
+      predictPlate(targetPlate, newRadius, coneAngle);
+    }
+  };
+
+  const handleConeChange = (newAngle) => {
+    setConeAngle(newAngle);
+    const targetPlate = prediction?.plate || plateQuery;
+    if (targetPlate) {
+      predictPlate(targetPlate, radiusKm, newAngle);
+    }
+  };
+
+  const handleToggleSealJunction = (cameraId) => {
+    setSealedJunctions(prev => {
+      const next = new Set(prev);
+      if (next.has(cameraId)) next.delete(cameraId);
+      else next.add(cameraId);
+      return next;
+    });
+  };
 
   const handleAlertStation = (station) => {
     if (!prediction) return;
@@ -188,8 +246,13 @@ export function TrajectoryPage() {
       .catch(() => setAlertingId(null));
   };
 
-  const handleLockToll = (tollId) => {
-    setLockedTolls(prev => new Set([...prev, tollId]));
+  const handleToggleToll = (cp) => {
+    setLockedTolls(prev => {
+      const next = new Set(prev);
+      if (next.has(cp.id)) next.delete(cp.id);
+      else next.add(cp.id);
+      return next;
+    });
   };
 
   const handleDispatchPCR = (pcrUnit) => {
@@ -200,6 +263,10 @@ export function TrajectoryPage() {
 
   const pred = prediction?.prediction;
   const infra = pred?.nearby_infrastructure;
+  const directional = pred?.directionalVector;
+  const intercept = pred?.interceptNet;
+  const downstreamCameras = intercept?.downstream_cameras || [];
+  const radialCameras = intercept?.radial_cameras || [];
   const lastPos = pred?.lastKnownPosition || { lat: 23.03, lng: 72.58 };
   const targetCoords = [lastPos.lat || 23.03, lastPos.lng || 72.58];
 
@@ -207,6 +274,7 @@ export function TrajectoryPage() {
   const tollChokepoints = infra?.toll_chokepoints || [];
   const traumaCenters = infra?.trauma_centers || [];
   const pcrVans = infra?.pcr_vans || [];
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '16px 24px', maxWidth: '1600px', margin: '0 auto' }}>
@@ -430,6 +498,201 @@ export function TrajectoryPage() {
             </div>
           </div>
 
+          {/* Directional Telemetry & Tactical Radar Controls Bar */}
+          {directional && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.98), rgba(24, 24, 27, 0.98))',
+              border: '1px solid rgba(14, 165, 233, 0.3)',
+              borderRadius: 12,
+              padding: '12px 18px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.45)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12
+            }}>
+              {/* Upper Strip: Dynamic Vector Metrics */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+                
+                {/* Bearing & Cardinal Direction */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'rgba(14, 165, 233, 0.15)',
+                    border: '1px solid rgba(14, 165, 233, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#38bdf8'
+                  }}>
+                    <Compass 
+                      size={20} 
+                      style={{ 
+                        transform: `rotate(${directional.heading_degrees || 0}deg)`, 
+                        transition: 'transform 0.5s ease' 
+                      }} 
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#7dd3fc', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Directional Heading
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{directional.cardinal || 'Tracking...'}</span>
+                      <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>
+                        ({directional.heading_degrees != null ? `${directional.heading_degrees}°` : '--'})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Transit Speed */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#34d399'
+                  }}>
+                    <Gauge size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#6ee7b7', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Transit Velocity
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: '#f8fafc' }}>
+                      {directional.speed_kmh} <span style={{ fontSize: 11, color: '#94a3b8' }}>km/h</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Prime Intercept Camera */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    background: 'rgba(245, 158, 11, 0.15)',
+                    border: '1px solid rgba(245, 158, 11, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fbbf24'
+                  }}>
+                    <Target size={20} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#fcd34d', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      Prime Intercept Target
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>{directional.next_camera_name || 'None in sector'}</span>
+                      {directional.next_camera_eta && (
+                        <span style={{ background: 'rgba(245, 158, 11, 0.2)', color: '#fef08a', border: '1px solid rgba(245, 158, 11, 0.4)', padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 800, fontFamily: 'monospace' }}>
+                          ETA {directional.next_camera_eta}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Total Scanned Nodes Counter */}
+                <div style={{
+                  background: '#18181b',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 8,
+                  padding: '6px 12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10
+                }}>
+                  <div>
+                    <div style={{ fontSize: 9, color: '#71717a', fontWeight: 800, textTransform: 'uppercase' }}>Downstream In-Path</div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#38bdf8' }}>{downstreamCameras.length} Cameras</div>
+                  </div>
+                  <div style={{ width: 1, height: 24, background: 'rgba(255, 255, 255, 0.1)' }}></div>
+                  <div>
+                    <div style={{ fontSize: 9, color: '#71717a', fontWeight: 800, textTransform: 'uppercase' }}>Perimeter Sentries</div>
+                    <div style={{ fontSize: 13, fontWeight: 900, color: '#94a3b8' }}>{radialCameras.length} Cameras</div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Lower Strip: Tactical Radar Parameters (Radius Slider & Cone Width) */}
+              <div style={{
+                borderTop: '1px solid rgba(255, 255, 255, 0.06)',
+                paddingTop: 10,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 16
+              }}>
+                {/* Radius Slider */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 260 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94a3b8', fontSize: 11, fontWeight: 700 }}>
+                    <Sliders size={13} color="#38bdf8" />
+                    <span>Search Radius:</span>
+                    <span style={{ background: '#0284c7', color: '#fff', padding: '1px 7px', borderRadius: 4, fontFamily: 'monospace', fontWeight: 900 }}>
+                      {radiusKm} km
+                    </span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="2" 
+                    max="25" 
+                    step="1" 
+                    value={radiusKm} 
+                    onChange={(e) => handleRadiusChange(Number(e.target.value))}
+                    style={{
+                      flex: 1,
+                      cursor: 'pointer',
+                      accentColor: '#0ea5e9'
+                    }}
+                  />
+                </div>
+
+                {/* Cone Angle Presets */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700 }}>
+                    Directional Cone:
+                  </span>
+                  {[
+                    { angle: 30, label: '30° Narrow (Corridor)' },
+                    { angle: 60, label: '60° Standard (Urban Radial)' },
+                    { angle: 90, label: '90° Wide (Multi-Fork)' }
+                  ].map(opt => (
+                    <button
+                      key={opt.angle}
+                      onClick={() => handleConeChange(opt.angle)}
+                      style={{
+                        background: coneAngle === opt.angle ? 'linear-gradient(135deg, #0284c7, #0369a1)' : '#18181b',
+                        color: coneAngle === opt.angle ? '#fff' : '#94a3b8',
+                        border: coneAngle === opt.angle ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                        borderRadius: 6,
+                        padding: '4px 9px',
+                        fontSize: 10,
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+
+              </div>
+            </div>
+          )}
+
           {/* 4. Tactical GIS Map + Sector Infrastructure Dispatch Matrix */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 480px', gap: 14 }}>
             
@@ -438,7 +701,7 @@ export function TrajectoryPage() {
               background: '#0a0e17',
               border: '1px solid rgba(51, 65, 85, 0.8)',
               borderRadius: 14,
-              height: '520px',
+              height: '540px',
               overflow: 'hidden',
               position: 'relative',
               boxShadow: '0 8px 25px rgba(0,0,0,0.4)'
@@ -455,10 +718,13 @@ export function TrajectoryPage() {
                 borderRadius: 24,
                 padding: '3px',
                 display: 'flex',
-                gap: 3
+                gap: 3,
+                maxWidth: 'calc(100% - 70px)',
+                overflowX: 'auto'
               }}>
                 {[
-                  { key: 'ALL', label: 'All Sector Points', count: (policeStations.length + tollChokepoints.length + traumaCenters.length + pcrVans.length) },
+                  { key: 'ALL', label: 'All Sector Grid', count: (downstreamCameras.length + policeStations.length + tollChokepoints.length + traumaCenters.length + pcrVans.length) },
+                  { key: 'CAMERAS', label: '🎯 Intercept Cameras', count: downstreamCameras.length },
                   { key: 'POLICE', label: 'Police Thanas', count: policeStations.length },
                   { key: 'TOLL', label: 'FASTag Tolls', count: tollChokepoints.length },
                   { key: 'TRAUMA', label: 'Trauma Care', count: traumaCenters.length },
@@ -479,6 +745,7 @@ export function TrajectoryPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 4,
+                      whiteSpace: 'nowrap',
                       transition: 'all 0.15s ease'
                     }}
                   >
@@ -503,14 +770,29 @@ export function TrajectoryPage() {
                 {/* Tactical Perimeter Radar Ranges */}
                 <Circle 
                   center={targetCoords} 
-                  radius={3000} 
-                  pathOptions={{ color: '#38bdf8', weight: 1.5, dashArray: '4, 6', fillColor: '#38bdf8', fillOpacity: 0.04 }} 
+                  radius={radiusKm * 1000} 
+                  pathOptions={{ color: '#0ea5e9', weight: 1.5, dashArray: '6, 8', fillColor: '#0ea5e9', fillOpacity: 0.03 }} 
                 />
-                <Circle 
-                  center={targetCoords} 
-                  radius={8000} 
-                  pathOptions={{ color: '#f59e0b', weight: 1.5, dashArray: '4, 6', fillColor: '#f59e0b', fillOpacity: 0.02 }} 
-                />
+
+                {/* Forward Directional Radar Cone Polygon */}
+                {directional?.radar_cone_polygon && directional.radar_cone_polygon.length > 0 && (
+                  <Polygon 
+                    positions={directional.radar_cone_polygon}
+                    pathOptions={{
+                      color: '#06b6d4',
+                      fillColor: '#06b6d4',
+                      fillOpacity: 0.16,
+                      weight: 2,
+                      dashArray: '4, 4'
+                    }}
+                  >
+                    <Tooltip sticky>
+                      <div style={{ background: '#090d16', color: '#67e8f9', padding: '4px 8px', fontSize: 11, fontWeight: 800 }}>
+                        FORWARD RADAR CONE ({coneAngle}° • {radiusKm} km)
+                      </div>
+                    </Tooltip>
+                  </Polygon>
+                )}
 
                 {/* Target Sighting Marker */}
                 <Marker position={targetCoords} icon={createVehicleTargetIcon()}>
@@ -523,6 +805,56 @@ export function TrajectoryPage() {
                     </div>
                   </Popup>
                 </Marker>
+
+                {/* Downstream Intercept Cameras */}
+                {(activeCategory === 'ALL' || activeCategory === 'CAMERAS') && downstreamCameras.map(cam => {
+                  const isSealed = sealedJunctions.has(cam.camera_id);
+                  return (
+                    <Marker key={cam.camera_id} position={[cam.lat, cam.lng]} icon={createInterceptCameraIcon(cam.eta_formatted, isSealed)}>
+                      <Popup>
+                        <div style={{ background: '#0f172a', color: '#f8fafc', padding: 8, fontSize: 12 }}>
+                          <strong style={{ color: '#38bdf8' }}>{cam.name}</strong><br />
+                          Camera ID: <strong>{cam.camera_id}</strong><br />
+                          Distance: <strong>{cam.distance_km} km</strong><br />
+                          Forward Bearing: <strong>{cam.bearing_deg}° ({cam.angle_diff_deg}° off heading)</strong><br />
+                          Estimated Arrival: <strong style={{ color: '#fbbf24' }}>{cam.eta_formatted}</strong><br />
+                          Roadblock: <strong style={{ color: isSealed ? '#ef4444' : '#10b981' }}>{isSealed ? 'ROADBLOCK ACTIVE' : 'OPEN'}</strong><br />
+                          <button
+                            onClick={() => handleToggleSealJunction(cam.camera_id)}
+                            style={{
+                              marginTop: 6,
+                              width: '100%',
+                              background: isSealed ? '#dc2626' : '#0284c7',
+                              color: '#fff',
+                              border: 'none',
+                              padding: '5px 8px',
+                              borderRadius: 4,
+                              cursor: 'pointer',
+                              fontWeight: 800,
+                              fontSize: 10
+                            }}
+                          >
+                            {isSealed ? 'LIFT ROADBLOCK' : '🚨 SEAL JUNCTION ROADBLOCK'}
+                          </button>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  );
+                })}
+
+                {/* Radial Perimeter Sentry Cameras */}
+                {(activeCategory === 'ALL' || activeCategory === 'CAMERAS') && radialCameras.map(cam => (
+                  <Marker key={cam.camera_id} position={[cam.lat, cam.lng]} icon={createRadialCameraIcon()}>
+                    <Popup>
+                      <div style={{ background: '#0f172a', color: '#f8fafc', padding: 8, fontSize: 12 }}>
+                        <strong style={{ color: '#94a3b8' }}>{cam.name}</strong><br />
+                        Camera ID: <strong>{cam.camera_id}</strong><br />
+                        Distance: <strong>{cam.distance_km} km</strong><br />
+                        Status: Radial Perimeter Sentry (Out of Cone)
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
 
                 {/* Police Station Markers */}
                 {(activeCategory === 'ALL' || activeCategory === 'POLICE') && policeStations.map((ps, idx) => {
@@ -592,8 +924,120 @@ export function TrajectoryPage() {
             </div>
 
             {/* Right: Tactical Points Cards & Action Dispatcher */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '520px', overflowY: 'auto', paddingRight: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '540px', overflowY: 'auto', paddingRight: 4 }}>
               
+              {/* 0. Downstream Intercept Net & Tactical Roadblocks */}
+              <div style={{
+                background: '#121215',
+                border: '1px solid rgba(14, 165, 233, 0.3)',
+                borderRadius: 10,
+                padding: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: '#f4f4f5', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <Target size={13} color="#38bdf8" /> Downstream Intercept Net ({downstreamCameras.length})
+                  </span>
+                  <span style={{ fontSize: 9, color: sealedJunctions.size > 0 ? '#ef4444' : '#38bdf8', background: sealedJunctions.size > 0 ? 'rgba(239, 68, 68, 0.12)' : 'rgba(14, 165, 233, 0.08)', border: sealedJunctions.size > 0 ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(14, 165, 233, 0.2)', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                    {sealedJunctions.size} Roadblocks Sealed
+                  </span>
+                </div>
+
+                {downstreamCameras.length === 0 ? (
+                  <div style={{ padding: '12px 10px', background: '#18181b', borderRadius: 6, border: '1px dashed rgba(255, 255, 255, 0.1)', textAlign: 'center', color: '#71717a', fontSize: 11 }}>
+                    No downstream cameras inside {coneAngle}° cone within {radiusKm} km.<br />
+                    <span style={{ color: '#38bdf8', fontSize: 10 }}>Widen cone to 90° or increase search radius above.</span>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {downstreamCameras.map((cam, idx) => {
+                      const isSealed = sealedJunctions.has(cam.camera_id);
+
+                      return (
+                        <div 
+                          key={cam.camera_id}
+                          style={{
+                            background: isSealed ? 'rgba(239, 68, 68, 0.1)' : '#18181b',
+                            border: isSealed ? '1px solid rgba(239, 68, 68, 0.4)' : '1px solid rgba(255, 255, 255, 0.06)',
+                            borderRadius: 6,
+                            padding: '8px 10px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 5
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ background: idx === 0 ? '#0284c7' : '#27272a', color: '#fff', fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 3 }}>
+                                {idx === 0 ? 'PRIME TARGET' : `POINT #${idx + 1}`}
+                              </span>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#f4f4f5' }}>{cam.name}</span>
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 900, color: '#fbbf24', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.25)', padding: '1px 6px', borderRadius: 3, fontFamily: 'monospace' }}>
+                              ETA {cam.eta_formatted}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: 10, color: '#71717a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>ID: <strong style={{ color: '#d4d4d8' }}>{cam.camera_id}</strong> • Distance: <strong style={{ color: '#d4d4d8' }}>{cam.distance_km} km</strong></span>
+                            <span style={{ color: '#38bdf8' }}>{cam.angle_diff_deg}° off heading</span>
+                          </div>
+
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                            <span style={{ fontSize: 9, color: isSealed ? '#ef4444' : '#10b981', fontWeight: 800 }}>
+                              {isSealed ? '🚨 ROADBLOCK DEPLOYED' : '🛣️ TRAFFIC FLOW OPEN'}
+                            </span>
+
+                            <button
+                              onClick={() => handleToggleSealJunction(cam.camera_id)}
+                              style={{
+                                background: isSealed ? '#dc2626' : '#0284c7',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: 4,
+                                padding: '3px 8px',
+                                fontSize: 9,
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {isSealed ? <Check size={9} /> : <Ban size={9} />}
+                              {isSealed ? 'Lift Roadblock' : 'Seal Roadblock'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Radial Sentries Pill */}
+                {radialCameras.length > 0 && (
+                  <div style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    borderRadius: 6,
+                    padding: '6px 8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: 10,
+                    color: '#94a3b8'
+                  }}>
+                    <span>📡 Radial Perimeter Sentries</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 700, color: '#d4d4d8' }}>
+                      {radialCameras.length} active sentry cameras
+                    </span>
+                  </div>
+                )}
+              </div>
+
               {/* 1. Nearest Police Stations (Thanas) */}
               <div style={{
                 background: '#121215',

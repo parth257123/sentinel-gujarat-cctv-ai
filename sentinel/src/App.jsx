@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Map, Video, Search, Shield, Bell, BarChart3, Settings, Camera, Cpu, Radio, Target, FileText, AlertOctagon, ChevronLeft, ChevronRight, Menu, Database, Sparkles, Siren, Fingerprint, Route, Tag, Wand2 } from 'lucide-react'
+import { Map, Video, Search, Shield, Bell, BarChart3, Settings, Camera, Cpu, Radio, Target, FileText, AlertOctagon, ChevronLeft, ChevronRight, Menu, Database, Sparkles, Siren, Fingerprint, Route, Tag, Wand2, Building2, Navigation } from 'lucide-react'
 import { CameraMonitoringPage } from './pages/CameraMonitoringPage'
 import { VideoWallPage } from './pages/VideoWallPage'
 import { VideoEnhancementStudioPage } from './pages/VideoEnhancementStudioPage'
@@ -13,6 +13,8 @@ import { InvestigatorPage } from './pages/InvestigatorPage'
 import { ForensicsDossierPage } from './pages/ForensicsDossierPage'
 import { DataArchivePage } from './pages/DataArchivePage'
 import { AnnotationStudioPage } from './pages/AnnotationStudioPage'
+import { CctvRegistryPage } from './pages/CctvRegistryPage'
+import { RouteReconstructionPage } from './pages/RouteReconstructionPage'
 import { TacticalInterceptModal } from './components/TacticalInterceptModal'
 import { generateWatchlist } from './data/sampleData'
 
@@ -178,6 +180,7 @@ export default function App() {
     { id: 'search', label: 'Vehicle Search & Tracking', icon: Search },
     { id: 'violations', label: 'Traffic Violations', icon: AlertOctagon },
     { id: 'trajectory', label: '3D Trajectory & Intercept', icon: Route },
+    { id: 'routemap', label: 'Route Reconstruction & Stolen Vehicle', icon: Navigation, badge: 'NEW' },
     { id: 'investigator', label: 'Operation Netram Copilot', icon: Sparkles, badge: 'AI' },
     { id: 'watchlist', label: 'Watchlist & Lookouts', icon: Shield },
     { id: 'alerts', label: 'Intercept Alerts', icon: Bell, badge: unreadAlerts || null },
@@ -185,6 +188,7 @@ export default function App() {
     { id: 'forensics', label: 'Section 65B Dossier', icon: FileText },
     { id: 'archive', label: 'Forensic Archive', icon: Database },
     { id: 'annotation', label: 'Annotation Studio', icon: Tag, badge: 'AI' },
+    { id: 'registry', label: 'Statewide CCTV Registry & GIS', icon: Building2, badge: 'NEW' },
   ];
 
   const pageLabels = {
@@ -194,6 +198,7 @@ export default function App() {
     search: 'Vehicle Search & Cross-Camera Tracking',
     violations: 'Traffic Violations & e-Challan Enforcement',
     trajectory: 'Tactical 3D Vehicle Trajectory & Intercept Network',
+    routemap: 'Multi-Camera Route Reconstruction & Stolen Vehicle Alert',
     investigator: 'Operation Netram-Lock — AI Natural Language Copilot',
     watchlist: 'Watchlist & Lookout Database',
     alerts: 'Intercept Alerts & Dispatch',
@@ -201,6 +206,7 @@ export default function App() {
     annotation: 'Gujarat Police CCTV Dataset Annotation Studio (YOLOv8/v12 Active Learning)',
     forensics: 'Section 65B BSA 2023 Electronic Evidence Dossier',
     archive: 'Statewide Forensic Surveillance Evidence Archive',
+    registry: 'Statewide Centralised CCTV Asset Registry & GIS Mapping Platform',
   };
 
   return (
@@ -266,7 +272,7 @@ export default function App() {
           ))}
 
           <div className="nav-section-label">Reports &amp; Legal Forensics</div>
-          {navItems.slice(10).map(item => (
+          {navItems.slice(10, 13).map(item => (
             <a 
               key={item.id} 
               className={`nav-item ${activePage === item.id ? 'active' : ''}`} 
@@ -275,6 +281,20 @@ export default function App() {
             >
               <item.icon size={18} />
               <span className="nav-item-text">{item.label}</span>
+            </a>
+          ))}
+
+          <div className="nav-section-label">Asset Registry &amp; Infrastructure</div>
+          {navItems.slice(13).map(item => (
+            <a 
+              key={item.id} 
+              className={`nav-item ${activePage === item.id ? 'active' : ''}`} 
+              onClick={() => setActivePage(item.id)}
+              title={isSidebarCollapsed ? item.label : undefined}
+            >
+              <item.icon size={18} />
+              <span className="nav-item-text">{item.label}</span>
+              {item.badge && <span className="nav-badge" style={{ background: 'linear-gradient(135deg, #3b82f6, #06b6d4)' }}>{item.badge}</span>}
             </a>
           ))}
         </nav>
@@ -333,6 +353,7 @@ export default function App() {
           {activePage === 'search' && <VehicleSearchPage cameras={cameras} detections={detections} />}
           {activePage === 'violations' && <ViolationsPage cameras={cameras} />}
           {activePage === 'trajectory' && <TrajectoryPage />}
+          {activePage === 'routemap' && <RouteReconstructionPage />}
           {activePage === 'investigator' && <InvestigatorPage />}
           {activePage === 'watchlist' && <WatchlistPage watchlist={watchlist} setWatchlist={setWatchlist} onOpenAlertModal={(a) => setActiveInterceptModal(a)} />}
           {activePage === 'alerts' && <AlertsPage alerts={alerts} setAlerts={setAlerts} onOpenAlertModal={(a) => setActiveInterceptModal(a)} />}
@@ -340,6 +361,7 @@ export default function App() {
           {activePage === 'forensics' && <ForensicsDossierPage />}
           {activePage === 'archive' && <DataArchivePage cameras={cameras} onNavigatePage={setActivePage} onSelectVehicle={(plate) => { setActivePage('search'); }} />}
           {activePage === 'annotation' && <AnnotationStudioPage />}
+          {activePage === 'registry' && <CctvRegistryPage />}
         </div>
       </div>
 

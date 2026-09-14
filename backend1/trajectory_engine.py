@@ -150,10 +150,137 @@ def get_nearby_infrastructure(target_lat: float, target_lng: float, target_city:
         "tactical_radius_km": MAX_RADIUS_KM
     }
 
-def predict_trajectory(sightings: List[Dict[str, Any]], all_cameras: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def calculate_bearing(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculates forward compass bearing in degrees (0 to 360) from point 1 to point 2."""
+    if None in (lat1, lon1, lat2, lon2):
+        return 0.0
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_lambda = math.radians(lon2 - lon1)
+    y = math.sin(delta_lambda) * math.cos(phi2)
+    x = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(delta_lambda)
+    theta = math.atan2(y, x)
+    return round((math.degrees(theta) + 360) % 360, 1)
+
+def bearing_to_cardinal(degrees: float) -> str:
+    """Converts bearing degrees to human-readable cardinal direction."""
+    cardinals = [
+        "North", "North-Northeast (NNE)", "North-East (NE)", "East-Northeast (ENE)",
+        "East", "East-Southeast (ESE)", "South-East (SE)", "South-Southeast (SSE)",
+        "South", "South-Southwest (SSW)", "South-West (SW)", "West-Southwest (WSW)",
+        "West", "West-Northwest (WNW)", "North-West (NW)", "North-Northwest (NNW)"
+    ]
+    idx = int((degrees + 11.25) / 22.5) % 16
+    return cardinals[idx]
+
+def destination_point(lat: float, lon: float, distance_km: float, bearing_deg: float) -> tuple:
+    """Calculates latitude and longitude of a destination point given distance and bearing."""
+    R = 6371.0
+    d_r = distance_km / R
+    theta = math.radians(bearing_deg)
+    lat1 = math.radians(lat)
+    lon1 = math.radians(lon)
+    lat2 = math.asin(math.sin(lat1) * math.cos(d_r) + math.cos(lat1) * math.sin(d_r) * math.cos(theta))
+    lon2 = lon1 + math.atan2(math.sin(theta) * math.sin(d_r) * math.cos(lat1), math.cos(d_r) - math.sin(lat1) * math.sin(lat2))
+    return round(math.degrees(lat2), 6), round(math.degrees(lon2), 6)
+
+def generate_radar_cone_polygon(lat0: float, lng0: float, bearing_deg: float, radius_km: float, cone_angle_deg: float = 60.0, steps: int = 16) -> List[List[float]]:
+    """Generates geojson/leaflet polygon points for the forward directional radar search sector."""
+    half_angle = cone_angle_deg / 2.0
+    start_angle = bearing_deg - half_angle
+    end_angle = bearing_deg + half_angle
+    
+    polygon = [[lat0, lng0]]
+    for i in range(steps + 1):
+        angle = start_angle + (end_angle - start_angle) * (i / steps)
+        arc_lat, arc_lng = destination_point(lat0, lng0, radius_km, angle)
+        polygon.append([arc_lat, arc_lng])
+    polygon.append([lat0, lng0])
+    return polygon
+
+def compute_directional_intercept_net(
+    last_lat: float,
+    last_lng: float,
+    heading_deg: float,
+    radius_km: float,
+    cone_angle_deg: float,
+    all_cameras: List[Dict[str, Any]],
+    speed_kmh: float = 48.0
+) -> Dict[str, Any]:
     """
-    Computes spatial tactical infrastructure perimeter, nearest police stations,
-    and emergency response points for the suspect vehicle.
+    Scans all cameras in network. Filters:
+    1. Downstream Intercept Cameras (directly inside forward angular cone <= cone_angle_deg / 2)
+    2. Radial Perimeter Cameras (all cameras within radius_km)
+    Computes precise arrival times (ETA in mins/secs) for intercept cameras.
+    """
+    half_cone = cone_angle_deg / 2.0
+    downstream_cameras = []
+    radial_cameras = []
+    
+    for cam in all_cameras:
+        c_lat = cam.get("lat")
+        c_lng = cam.get("lng")
+        if c_lat is None or c_lng is None:
+            continue
+            
+        dist = haversine_km(last_lat, last_lng, c_lat, c_lng)
+        if dist <= 0.02:
+            # Current camera itself, skip from search net
+            continue
+            
+        if dist <= radius_km:
+            bearing_to_cam = calculate_bearing(last_lat, last_lng, c_lat, c_lng)
+            # Angular difference wrapped in [-180, 180]
+            angle_diff = abs((bearing_to_cam - heading_deg + 180) % 360 - 180)
+            
+            eta_seconds = (dist / max(15.0, speed_kmh)) * 3600.0
+            eta_mins = round(eta_seconds / 60.0, 1)
+            mins_int = int(eta_seconds // 60)
+            secs_int = int(eta_seconds % 60)
+            eta_formatted = f"{mins_int}m {secs_int:02d}s" if mins_int > 0 else f"{secs_int}s"
+            
+            cam_entry = {
+                "camera_id": str(cam.get("id")),
+                "name": cam.get("name", f"CCTV {cam.get('id')}"),
+                "city": cam.get("city", "Gujarat"),
+                "dept": cam.get("dept", "Traffic Police"),
+                "lat": c_lat,
+                "lng": c_lng,
+                "distance_km": round(dist, 2),
+                "bearing_deg": round(bearing_to_cam, 1),
+                "angle_diff_deg": round(angle_diff, 1),
+                "eta_seconds": round(eta_seconds, 1),
+                "eta_mins": eta_mins,
+                "eta_formatted": eta_formatted,
+                "in_direct_cone": angle_diff <= half_cone,
+                "is_chokepoint": "bridge" in cam.get("name", "").lower() or "circle" in cam.get("name", "").lower() or "gate" in cam.get("name", "").lower()
+            }
+            
+            radial_cameras.append(cam_entry)
+            if angle_diff <= half_cone:
+                downstream_cameras.append(cam_entry)
+                
+    # Sort downstream by ETA (earliest arrival first)
+    downstream_cameras.sort(key=lambda x: x["eta_seconds"])
+    # Sort radial by distance
+    radial_cameras.sort(key=lambda x: x["distance_km"])
+    
+    return {
+        "downstream_cameras": downstream_cameras,
+        "radial_cameras": radial_cameras,
+        "intercept_count": len(downstream_cameras),
+        "total_in_radius": len(radial_cameras)
+    }
+
+def predict_trajectory(
+    sightings: List[Dict[str, Any]], 
+    all_cameras: List[Dict[str, Any]],
+    radius_km: float = 6.0,
+    cone_angle_deg: float = 60.0
+) -> Optional[Dict[str, Any]]:
+    """
+    Computes spatial tactical infrastructure perimeter, vehicle directional vector,
+    speed estimation, downstream forward intercept cameras, and radar cone geometry.
     """
     if not sightings or len(sightings) == 0:
         return None
@@ -169,9 +296,71 @@ def predict_trajectory(sightings: List[Dict[str, Any]], all_cameras: List[Dict[s
     last_lng = last_cam.get("lng") or last_sighting.get("lng") or 72.5100
     last_city = last_cam.get("city") or "Ahmedabad"
 
+    # Direction & Velocity Vector Math
+    heading_deg = 45.0 # Default fallback
+    cardinal_dir = "North-East"
+    speed_kmh = 48.0
+    has_directional_lock = False
+    
+    if len(sightings) >= 2:
+        prev_sighting = sightings[-2]
+        prev_cam_id = str(prev_sighting.get("cameraId") or prev_sighting.get("camera_id"))
+        prev_cam = cam_lookup.get(prev_cam_id, {})
+        prev_lat = prev_cam.get("lat") or prev_sighting.get("lat") or last_lat
+        prev_lng = prev_cam.get("lng") or prev_sighting.get("lng") or last_lng
+        
+        # Calculate bearing between sequential cameras
+        dist_between = haversine_km(prev_lat, prev_lng, last_lat, last_lng)
+        if dist_between > 0.05:
+            heading_deg = calculate_bearing(prev_lat, prev_lng, last_lat, last_lng)
+            cardinal_dir = bearing_to_cardinal(heading_deg)
+            has_directional_lock = True
+            
+            # Calculate speed if timestamps exist
+            try:
+                t1_str = prev_sighting.get("timestamp")
+                t2_str = last_sighting.get("timestamp")
+                if t1_str and t2_str:
+                    t1 = datetime.datetime.fromisoformat(t1_str.replace("Z", "+00:00"))
+                    t2 = datetime.datetime.fromisoformat(t2_str.replace("Z", "+00:00"))
+                    dt_hours = abs((t2 - t1).total_seconds()) / 3600.0
+                    if 0.001 < dt_hours < 2.0:
+                        calculated_speed = dist_between / dt_hours
+                        if 15.0 <= calculated_speed <= 140.0:
+                            speed_kmh = round(calculated_speed, 1)
+            except Exception:
+                pass
+    else:
+        # Default single camera sighting vector
+        heading_deg = float(last_cam.get("default_bearing", 195.0))
+        cardinal_dir = bearing_to_cardinal(heading_deg)
+
+    # Compute Downstream Camera Intercept Net
+    intercept_net = compute_directional_intercept_net(
+        last_lat=last_lat,
+        last_lng=last_lng,
+        heading_deg=heading_deg,
+        radius_km=radius_km,
+        cone_angle_deg=cone_angle_deg,
+        all_cameras=all_cameras,
+        speed_kmh=speed_kmh
+    )
+
+    # Radar Cone Polygon for Leaflet Map Rendering
+    cone_polygon = generate_radar_cone_polygon(
+        lat0=last_lat,
+        lng0=last_lng,
+        bearing_deg=heading_deg,
+        radius_km=radius_km,
+        cone_angle_deg=cone_angle_deg
+    )
+
     # Compute Strict Local Tactical Nearby Infrastructure
     tactical_infra = get_nearby_infrastructure(last_lat, last_lng, last_city)
     nearest_ps = tactical_infra["police_stations"][0] if tactical_infra["police_stations"] else None
+
+    # Next predicted junction
+    next_camera = intercept_net["downstream_cameras"][0] if intercept_net["downstream_cameras"] else None
 
     return {
         "lastKnownPosition": {
@@ -181,11 +370,25 @@ def predict_trajectory(sightings: List[Dict[str, Any]], all_cameras: List[Dict[s
             "lng": last_lng,
             "timestamp": last_sighting.get("timestamp")
         },
+        "directionalVector": {
+            "heading_degrees": heading_deg,
+            "cardinal": cardinal_dir,
+            "speed_kmh": speed_kmh,
+            "has_directional_lock": has_directional_lock,
+            "radius_km": radius_km,
+            "cone_angle_deg": cone_angle_deg,
+            "radar_cone_polygon": cone_polygon,
+            "next_camera_name": next_camera["name"] if next_camera else None,
+            "next_camera_eta": next_camera["eta_formatted"] if next_camera else None
+        },
+        "interceptNet": intercept_net,
         "primary_police_station": nearest_ps,
         "nearby_infrastructure": tactical_infra,
         "threatAssessment": {
-            "evasionRisk": "HIGH",
+            "evasionRisk": "CRITICAL" if has_directional_lock else "HIGH",
             "jurisdiction": nearest_ps["name"] if nearest_ps else f"{last_city} Police Commissionerate",
-            "sho_contact": nearest_ps["phone"] if nearest_ps else "112"
+            "sho_contact": nearest_ps["phone"] if nearest_ps else "112",
+            "active_intercept_chokepoints": [c["name"] for c in intercept_net["downstream_cameras"][:3]]
         }
     }
+

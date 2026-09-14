@@ -449,13 +449,10 @@ export function VideoEnhancementStudioPage({ cameras = [] }) {
             {viewMode === 'live_stream' ? (
               <div style={{ width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
                 <img 
+                  key={`stream-${selectedCameraId}-${activePreset}`}
                   src={`${API_BASE}/api/enhance/stream?camera_id=${selectedCameraId}&mode=${activePreset === 'custom' ? (activeStages[0] || 'auto') : activePreset}&side_by_side=true`}
                   alt="Live Enhanced CCTV"
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = rawImage || '';
-                  }}
                 />
                 <div style={{
                   position: 'absolute',

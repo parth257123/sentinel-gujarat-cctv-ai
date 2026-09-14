@@ -20,6 +20,7 @@ import random
 from ultralytics import YOLO
 from reid_engine import VehicleReIDEngine
 from deblur_engine import deblur_engine
+from real_speed_engine import RealSpeedEstimationEngine
 
 class ANPREngine:
     def __init__(self):
@@ -210,21 +211,40 @@ class ANPREngine:
         detections = []
         h, w = frame.shape[:2]
         
-        # 1. Detect vehicles
-        v_results = self.vehicle_model(frame, classes=self.vehicle_classes, device=self.device, verbose=False)[0]
+        # 1. Optical Pre-Conditioning (Low-Light & Shadow Enhancement)
+        # Evaluates luminance and boosts shadow details BEFORE feeding into YOLO detection
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if float(gray.mean()) < 65:
+            lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+            l, a, b = cv2.split(lab)
+            clahe = cv2.createCLAHE(clipLimit=2.2, tileGridSize=(8, 8))
+            l_boost = clahe.apply(l)
+            inference_frame = cv2.cvtColor(cv2.merge([l_boost, a, b]), cv2.COLOR_LAB2BGR)
+        else:
+            inference_frame = frame
+
+        # Detect vehicles on pre-conditioned frame
+        v_results = self.vehicle_model(inference_frame, classes=self.vehicle_classes, device=self.device, verbose=False)[0]
         
         for box in v_results.boxes:
             vx1, vy1, vx2, vy2 = map(int, box.xyxy[0])
             v_conf = float(box.conf[0])
             cls_id = int(box.cls[0])
+            v_crop = frame[max(0, vy1):min(h, vy2), max(0, vx1):min(w, vx2)]
+            if v_crop.size == 0:
+                continue
+            cls_id, v_conf = RealSpeedEstimationEngine.verify_and_refine_auto_rickshaw(v_crop, cls_id, v_conf)
             cls_raw = self.vehicle_model.names.get(cls_id, 'Car')
             name_map = {
                 'auto_rickshaw': 'Auto-Rickshaw',
+                'two_wheeler': 'Two-Wheeler',
                 'motorcycle': 'Motorcycle',
                 'scooter': 'Scooter',
                 'car': 'Car',
                 'ambulance': 'Ambulance',
                 'truck': 'Truck',
+                'truck/tempo': 'Truck/Tempo',
+                'heavy_machinery': 'Heavy Machinery',
                 'bus': 'Transit Bus',
                 'van': 'Van',
                 'pedestrian': 'Pedestrian',

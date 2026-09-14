@@ -14,7 +14,7 @@ const CLASSES = [
   { id: 3, name: 'heavy_machinery', label: 'Heavy Machinery', key: '4', color: '#d97706' },
   { id: 4, name: 'emergency_vehicle', label: 'Emergency', key: '5', color: '#ef4444' },
   { id: 5, name: 'van', label: 'Van', key: '6', color: '#8b5cf6' },
-  { id: 6, name: 'truck', label: 'Truck', key: '7', color: '#ec4899' },
+  { id: 6, name: 'truck/tempo', label: 'Truck / Tempo', key: '7', color: '#ec4899' },
   { id: 7, name: 'bus', label: 'Bus', key: '8', color: '#6366f1' },
   { id: 8, name: 'auto_rickshaw', label: 'Auto Rickshaw', key: '9', color: '#f59e0b' },
   { id: 9, name: 'others', label: 'Others', key: '0', color: '#64748b' },
@@ -59,7 +59,7 @@ export function AnnotationStudioPage() {
   useEffect(() => {
     loadFramesAndStats();
     loadHarvestTelemetry();
-    const timer = setInterval(loadHarvestTelemetry, 4000);
+    const timer = setInterval(loadHarvestTelemetry, 20000);
     return () => clearInterval(timer);
   }, []);
 
@@ -133,6 +133,9 @@ export function AnnotationStudioPage() {
   };
 
   const activeFrame = frames[selectedFrameIdx] || null;
+  const activeFrameRef = useRef(activeFrame);
+  activeFrameRef.current = activeFrame;
+  const lastStatsFetchRef = useRef(0);
 
   // Load labels whenever active frame changes
   useEffect(() => {
@@ -151,23 +154,29 @@ export function AnnotationStudioPage() {
       .catch(() => setBoxes([]));
   }, [activeFrame]);
 
-  // Live Collaborative Multi-User Sync WebSocket
+  // Live Collaborative Multi-User Sync WebSocket (runs ONCE on mount)
   useEffect(() => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     let ws = null;
     let reconnectTimer = null;
+    let isMounted = true;
 
     const connectWS = () => {
+      if (!isMounted) return;
       try {
         ws = new WebSocket(wsUrl);
-        ws.onopen = () => setWsConnected(true);
+        ws.onopen = () => {
+          if (isMounted) setWsConnected(true);
+        };
         ws.onclose = () => {
-          setWsConnected(false);
-          reconnectTimer = setTimeout(connectWS, 4000);
+          if (isMounted) {
+            setWsConnected(false);
+            reconnectTimer = setTimeout(connectWS, 5000);
+          }
         };
         ws.onerror = () => {
-          setWsConnected(false);
+          if (isMounted) setWsConnected(false);
         };
         ws.onmessage = (event) => {
           try {
@@ -176,8 +185,9 @@ export function AnnotationStudioPage() {
               // 1. Mark frame as annotated in local state
               setFrames(prev => prev.map(f => f.base_id === data.base_id ? { ...f, is_annotated: true } : f));
 
-              // 2. If viewing the exact same frame, sync boxes live!
-              if (activeFrame && activeFrame.base_id === data.base_id) {
+              // 2. If viewing the exact same frame, sync boxes live via ref!
+              const curr = activeFrameRef.current;
+              if (curr && curr.base_id === data.base_id) {
                 setBoxes(data.boxes || []);
               }
 
@@ -185,8 +195,12 @@ export function AnnotationStudioPage() {
               setCollabNotification(`⚡ Collaborator saved ${data.base_id} (${data.boxes_count} boxes)`);
               setTimeout(() => setCollabNotification(''), 4000);
 
-              // 4. Update dataset stats in real-time
-              fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json()).then(setStats).catch(() => {});
+              // 4. Throttle stats update (maximum once every 5 seconds)
+              const now = Date.now();
+              if (now - lastStatsFetchRef.current > 5000) {
+                lastStatsFetchRef.current = now;
+                fetch(`${API_BASE}/api/annotation/stats`).then(r => r.json()).then(setStats).catch(() => {});
+              }
             }
           } catch (err) {}
         };
@@ -195,10 +209,13 @@ export function AnnotationStudioPage() {
 
     connectWS();
     return () => {
-      if (ws) ws.close();
+      isMounted = false;
+      if (ws) {
+        try { ws.close(); } catch (e) {}
+      }
       if (reconnectTimer) clearTimeout(reconnectTimer);
     };
-  }, [activeFrame]);
+  }, []);
 
   // Keyboard shortcuts (1-9 and 0 for class selection, Delete to delete box, Space for AI Assist)
   useEffect(() => {
@@ -433,11 +450,7 @@ export function AnnotationStudioPage() {
 
   // Filmstrip pagination to keep browser fast and smooth with 15,000+ frames
   const [filmstripPage, setFilmstripPage] = useState(0);
-  const FRAMES_PER_PAGE = 50;
-
-  useEffect(() => {
-    setFilmstripPage(0);
-  }, [filter, selectedCam, selectedLighting]);
+  const FRAMES_PER_PAGE = 30;
 
   // Memoized Filter frames
   const filteredFrames = useMemo(() => {
@@ -449,6 +462,65 @@ export function AnnotationStudioPage() {
       return true;
     });
   }, [frames, filter, selectedCam, selectedLighting]);
+
+  // When filter changes, immediately lock to the first matching frame
+  useEffect(() => {
+    setFilmstripPage(0);
+    if (filteredFrames.length > 0) {
+      const firstFiltered = filteredFrames[0];
+      const origIdx = frames.findIndex(f => f.base_id === firstFiltered.base_id);
+      if (origIdx !== -1 && origIdx !== selectedFrameIdx) {
+        setSelectedFrameIdx(origIdx);
+      }
+    }
+  }, [filter, selectedCam, selectedLighting]);
+
+  const currFilteredIdx = useMemo(() => {
+    if (!activeFrame) return -1;
+    return filteredFrames.findIndex(f => f.base_id === activeFrame.base_id);
+  }, [filteredFrames, activeFrame]);
+
+  const handleNextFrame = () => {
+    if (currFilteredIdx !== -1 && currFilteredIdx < filteredFrames.length - 1) {
+      const nextFrame = filteredFrames[currFilteredIdx + 1];
+      const nextOriginalIdx = frames.findIndex(f => f.base_id === nextFrame.base_id);
+      if (nextOriginalIdx !== -1) {
+        setSelectedFrameIdx(nextOriginalIdx);
+        const nextPage = Math.floor((currFilteredIdx + 1) / FRAMES_PER_PAGE);
+        if (nextPage !== filmstripPage) setFilmstripPage(nextPage);
+      }
+    } else if (selectedFrameIdx < frames.length - 1) {
+      setSelectedFrameIdx(selectedFrameIdx + 1);
+    }
+  };
+
+  const handlePrevFrame = () => {
+    if (currFilteredIdx > 0) {
+      const prevFrame = filteredFrames[currFilteredIdx - 1];
+      const prevOriginalIdx = frames.findIndex(f => f.base_id === prevFrame.base_id);
+      if (prevOriginalIdx !== -1) {
+        setSelectedFrameIdx(prevOriginalIdx);
+        const prevPage = Math.floor((currFilteredIdx - 1) / FRAMES_PER_PAGE);
+        if (prevPage !== filmstripPage) setFilmstripPage(prevPage);
+      }
+    } else if (selectedFrameIdx > 0) {
+      setSelectedFrameIdx(selectedFrameIdx - 1);
+    }
+  };
+
+  // Keyboard navigation shortcuts (ArrowRight/d for next, ArrowLeft/a for prev)
+  useEffect(() => {
+    const handleNavKeys = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        handleNextFrame();
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        handlePrevFrame();
+      }
+    };
+    window.addEventListener('keydown', handleNavKeys);
+    return () => window.removeEventListener('keydown', handleNavKeys);
+  }, [currFilteredIdx, filteredFrames, selectedFrameIdx, frames, filmstripPage]);
 
   const totalPages = Math.max(1, Math.ceil(filteredFrames.length / FRAMES_PER_PAGE));
   const paginatedFrames = useMemo(() => {
@@ -658,7 +730,7 @@ export function AnnotationStudioPage() {
                   }}
                 >
                   <img
-                    src={`${API_BASE}/api/annotation/frame_image?path=${encodeURIComponent(f.full_path)}`}
+                    src={`${API_BASE}/api/annotation/frame_image?path=${encodeURIComponent(f.full_path)}&thumb=1`}
                     alt="thumb"
                     loading="lazy"
                     style={{ width: '48px', height: '36px', objectFit: 'cover', borderRadius: '4px', background: '#1e293b' }}
@@ -687,19 +759,19 @@ export function AnnotationStudioPage() {
           <div style={{ padding: '8px 16px', background: 'rgba(15, 23, 42, 0.8)', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <button
-                onClick={() => setSelectedFrameIdx(Math.max(0, selectedFrameIdx - 1))}
-                disabled={selectedFrameIdx === 0}
-                style={{ background: '#1e293b', border: '1px solid #334155', color: '#fff', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', opacity: selectedFrameIdx === 0 ? 0.4 : 1 }}
+                onClick={handlePrevFrame}
+                disabled={currFilteredIdx <= 0}
+                style={{ background: '#1e293b', border: '1px solid #334155', color: '#fff', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', opacity: currFilteredIdx <= 0 ? 0.4 : 1 }}
               >
                 <ChevronLeft size={16} />
               </button>
               <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                Frame <strong style={{ color: '#f8fafc' }}>{selectedFrameIdx + 1}</strong> of {frames.length}
+                Frame <strong style={{ color: '#f8fafc' }}>{currFilteredIdx !== -1 ? currFilteredIdx + 1 : selectedFrameIdx + 1}</strong> of {filteredFrames.length}
               </span>
               <button
-                onClick={() => setSelectedFrameIdx(Math.min(frames.length - 1, selectedFrameIdx + 1))}
-                disabled={selectedFrameIdx === frames.length - 1}
-                style={{ background: '#1e293b', border: '1px solid #334155', color: '#fff', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', opacity: selectedFrameIdx === frames.length - 1 ? 0.4 : 1 }}
+                onClick={handleNextFrame}
+                disabled={currFilteredIdx === -1 || currFilteredIdx >= filteredFrames.length - 1}
+                style={{ background: '#1e293b', border: '1px solid #334155', color: '#fff', borderRadius: '6px', padding: '4px 8px', cursor: 'pointer', opacity: (currFilteredIdx === -1 || currFilteredIdx >= filteredFrames.length - 1) ? 0.4 : 1 }}
               >
                 <ChevronRight size={16} />
               </button>

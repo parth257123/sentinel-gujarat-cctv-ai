@@ -434,6 +434,21 @@ class UnifiedVideoEnhancementPipeline:
             "is_compressed": contrast < 40 and laplacian_var < 140,
         }
 
+    def benchmark_all(self, frame):
+        """Runs each headline module individually to measure hardware latency & FPS."""
+        results = {}
+        _, m_zero = self.run_zero_dce(frame)
+        results["zero_dce"] = m_zero
+        _, m_dvd = self.run_fastdvdnet(frame)
+        results["fastdvdnet"] = m_dvd
+        _, m_naf = self.run_nafnet_deblur(frame)
+        results["nafnet_deblur"] = m_naf
+        _, m_deb = self.run_h264_deblock(frame)
+        results["h264_deblock"] = m_deb
+        _, m_sr = self.run_super_resolution(frame, scale=2)
+        results["super_res_2x"] = m_sr
+        return results
+
     @torch.no_grad()
     def run_zero_dce(self, frame):
         """

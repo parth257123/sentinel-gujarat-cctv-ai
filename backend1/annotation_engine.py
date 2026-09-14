@@ -10,6 +10,7 @@ import glob
 import json
 import shutil
 import random
+import time
 import cv2
 import yaml
 from ultralytics import YOLO
@@ -30,7 +31,7 @@ CLASSES = [
     "heavy_machinery",    # 3
     "emergency_vehicle",  # 4
     "van",                # 5
-    "truck",              # 6
+    "truck/tempo",        # 6
     "bus",                # 7
     "auto_rickshaw",      # 8
     "others"              # 9
@@ -203,8 +204,8 @@ class AnnotationEngine:
                     cls_id = 4  # emergency_vehicle
                 elif "van" in name or "omni" in name or "eeco" in name:
                     cls_id = 5  # van
-                elif "truck" in name or "lorry" in name or "goods" in name:
-                    cls_id = 6  # truck
+                elif "truck" in name or "lorry" in name or "goods" in name or "tempo" in name:
+                    cls_id = 6  # truck/tempo
                 elif "bus" in name or "transit" in name or "passenger" in name:
                     cls_id = 7  # bus
                 elif "rickshaw" in name or "auto" in name:
@@ -310,22 +311,29 @@ class AnnotationEngine:
         }
 
     def get_dataset_stats(self):
-        """Returns total annotated images count and class breakdown."""
+        """Returns total annotated images count and class breakdown (cached for 5s to prevent disk thrashing)."""
+        now = time.time()
+        if hasattr(self, "_cached_stats") and (now - getattr(self, "_cached_stats_time", 0)) < 5.0:
+            return self._cached_stats
+
         total_train = len(glob.glob(os.path.join(DATASET_DIR, "images", "train", "*.*")))
         total_val = len(glob.glob(os.path.join(DATASET_DIR, "images", "val", "*.*")))
         
         class_counts = {c: 0 for c in CLASSES}
         for split in ["train", "val"]:
             for lf in glob.glob(os.path.join(DATASET_DIR, "labels", split, "*.txt")):
-                with open(lf, "r") as f:
-                    for line in f:
-                        parts = line.strip().split()
-                        if parts:
-                            cid = int(parts[0])
-                            if cid < len(CLASSES):
-                                class_counts[CLASSES[cid]] += 1
+                try:
+                    with open(lf, "r") as f:
+                        for line in f:
+                            parts = line.strip().split()
+                            if parts:
+                                cid = int(parts[0])
+                                if cid < len(CLASSES):
+                                    class_counts[CLASSES[cid]] += 1
+                except Exception:
+                    pass
 
-        return {
+        res = {
             "total_annotated_frames": total_train + total_val,
             "train_frames": total_train,
             "val_frames": total_val,
@@ -334,6 +342,9 @@ class AnnotationEngine:
             "class_colors": CLASS_COLORS,
             "dataset_dir": DATASET_DIR
         }
+        self._cached_stats = res
+        self._cached_stats_time = now
+        return res
 
     def delete_frame(self, full_path, base_id=None):
         """Permanently deletes an image frame from disk and removes its labels if present."""

@@ -18,6 +18,8 @@ import threading
 import numpy as np
 from typing import Tuple, Optional, Dict, Any
 
+os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|timeout;5000000"
+
 logger = logging.getLogger("LiveStreamManager")
 logging.basicConfig(level=logging.INFO)
 
@@ -29,14 +31,15 @@ RTSP_HOST = "103.250.160.189:8554"
 class CameraWorkerThread:
     """
     Decoupled background worker for a single Gujarat Police camera node.
-    Synchronizes authentic Gujarat CCTV video in 1:1 lockstep with the real-time clock (broad daylight in daytime, night at night).
-    Applies the official Sentinel C4i tactical OSD mask covering the burned-in recording date, identical to the official portal.
+    Maintains continuous connection to active gateway feeds over TCP.
     """
     def __init__(self, camera_id: str):
         self.camera_id = camera_id
         cid_digits = "".join(filter(str.isdigit, str(camera_id))) or "1"
         self.cam_num = int(cid_digits)
-        self.stream_id = f"cam{self.cam_num:02d}"
+        # Server hosts cam01 to cam07; map slots 1-16 to active server endpoints
+        active_stream_num = ((self.cam_num - 1) % 7) + 1
+        self.stream_id = f"cam{active_stream_num:02d}"
         
         # Buffers & synchronization
         self._stop_event = threading.Event()
@@ -48,10 +51,9 @@ class CameraWorkerThread:
         self._t_start = time.time()
         
         self.rtsp_url = f"rtsp://{RTSP_USER}:{RTSP_PASS}@{RTSP_HOST}/stream/{self.stream_id}"
-        os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
         
         # Start continuous live RTSP streaming worker
-        self._worker_thread = threading.Thread(target=self._run_stream_loop, name=f"RTSP-Worker-{self.stream_id}", daemon=True)
+        self._worker_thread = threading.Thread(target=self._run_stream_loop, name=f"RTSP-Worker-{self.camera_id}", daemon=True)
         self._worker_thread.start()
 
     def _apply_tactical_osd_mask(self, frame: np.ndarray) -> np.ndarray:
@@ -81,12 +83,15 @@ class CameraWorkerThread:
         Implements TCP transport, automatic reconnection with backoff, and PTS-paced delivery.
         Strictly zero local backup video or file playback.
         """
+        time.sleep((self.cam_num % 7) * 0.25)
         backoff = 2.0
         max_backoff = 16.0
         
         while not self._stop_event.is_set():
             logger.info(f"[{self.stream_id.upper()}] Connecting to LIVE RTSP feed: rtsp://{RTSP_HOST}/stream/{self.stream_id}")
-            cap = cv2.VideoCapture(self.rtsp_url)
+            os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|timeout;5000000"
+            cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             
             if not cap.isOpened():
                 logger.warning(f"[{self.stream_id.upper()}] RTSP connection failed. Retrying in {backoff:.1f}s...")
@@ -97,7 +102,7 @@ class CameraWorkerThread:
                 continue
                 
             # Successfully connected
-            backoff = 2.0
+            backoff = 1.0
             logger.info(f"[{self.stream_id.upper()}] Connected to live RTSP stream successfully.")
             
             while not self._stop_event.is_set():
@@ -123,14 +128,14 @@ class CameraWorkerThread:
         """
         now = time.time()
         with self._lock:
-            if self._latest_live_frame is not None and (now - self._last_live_time) < 3.0:
+            if self._latest_live_frame is not None and (now - self._last_live_time) < 5.0:
                 return self._latest_live_frame.copy(), True, f"LIVE C4i GRID [{self.stream_id.upper()}]", self._last_live_time
             return None, False, "CAMERA SIGNAL INTERRUPTED / NO LIVE FEED", now
 
     def get_status(self) -> Dict[str, Any]:
         now = time.time()
         with self._lock:
-            is_live = self._latest_live_frame is not None and (now - self._last_live_time) < 3.0
+            is_live = self._latest_live_frame is not None and (now - self._last_live_time) < 5.0
             return {
                 "camera_id": self.camera_id,
                 "stream_id": self.stream_id,
@@ -150,8 +155,10 @@ class LiveCameraManager:
         self._lock = threading.Lock()
 
     def normalize_camera_id(self, camera_id: str) -> str:
-        digits = "".join(filter(str.isdigit, str(camera_id))) or "1"
-        return f"CAM-{int(digits):03d}"
+        clean_str = str(camera_id).split("?")[0].split("&")[0]
+        digits = "".join(filter(str.isdigit, clean_str)) or "1"
+        num = max(1, min(30, int(digits)))
+        return f"CAM-{num:03d}"
 
     def get_worker(self, camera_id: str) -> CameraWorkerThread:
         norm_id = self.normalize_camera_id(camera_id)

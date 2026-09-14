@@ -7,7 +7,8 @@ import {
 // Enhanced Camera Player with AI Stream Toggle, Optical Filters, Digital Zoom & Snapshot
 function VideoWallCell({ 
   cam, onSwapCamera, allCameras, isFocused, onToggleFocus, gridSize, 
-  globalAiMode, onPromoteToMaster, isMasterSlot, streamSource = 'local', customRtspUrl = '',
+  globalAiMode, globalEnhanceMode = true, globalFilterPreset = 'auto',
+  onPromoteToMaster, isMasterSlot, streamSource = 'local', customRtspUrl = '',
   qualityData
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -18,15 +19,22 @@ function VideoWallCell({
   const [searchQuery, setSearchQuery] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [cellAiMode, setCellAiMode] = useState(null); // null inherits globalAiMode
-  const [filterMode, setFilterMode] = useState('normal'); // 'normal', 'night', 'sharpen', 'thermal'
+  const [cellEnhanceMode, setCellEnhanceMode] = useState(null); // null inherits globalEnhanceMode
+  const [filterMode, setFilterMode] = useState('auto'); // 'auto', 'night', 'sharpen', 'thermal', 'normal'
   const [showFilterMenu, setShowFilterMenu] = useState(false);
 
   // Exact 1:1 mapping: Camera ID / stream_num maps directly to its specific camera feed
   const camNum = cam.stream_num || parseInt(String(cam.id).replace(/\D/g, '')) || 1;
   const isCompact = gridSize === '4x4' || (gridSize === '1+5' && !isMasterSlot);
 
+  // RFC 6761 Domain Sharding: Distributes connections across c1..c6.localhost so Chrome never caps out at 6 sockets!
+  // Unlocks simultaneous 16-feed (4x4) and 30-feed live playback with 0 black screens
+  const streamHost = `http://c${((camNum - 1) % 6) + 1}.localhost:8000`;
+
   // Use cell override if set, otherwise use global AI toggle
   const isAiActive = cellAiMode !== null ? cellAiMode : globalAiMode;
+  const isEnhanced = cellEnhanceMode !== null ? cellEnhanceMode : globalEnhanceMode;
+  const effectiveFilter = !isEnhanced ? 'normal' : (filterMode === 'normal' ? globalFilterPreset || 'auto' : filterMode);
 
   const handleZoomIn = (e) => {
     e.stopPropagation();
@@ -59,17 +67,18 @@ function VideoWallCell({
   };
 
   const filterStyle = useMemo(() => {
-    switch (filterMode) {
+    if (!isEnhanced) return 'none';
+    switch (effectiveFilter) {
       case 'night':
-        return 'brightness(1.35) contrast(1.25) saturate(1.4)';
+        return 'brightness(1.10) contrast(1.06)';
       case 'sharpen':
-        return 'contrast(1.6) saturate(1.2) drop-shadow(0 0 1px #3b82f6)';
+        return 'contrast(1.12)';
       case 'thermal':
-        return 'invert(0.9) hue-rotate(180deg) contrast(1.4)';
+        return 'invert(0.92) hue-rotate(180deg) contrast(1.35)';
       default:
         return 'none';
     }
-  }, [filterMode]);
+  }, [isEnhanced, effectiveFilter]);
 
   const filteredCams = allCameras.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -220,36 +229,68 @@ function VideoWallCell({
             {!isCompact && (isAiActive ? 'AI ON' : 'RAW')}
           </button>
 
-          {/* Optical Filters Button */}
+          {/* AI Video Enhancement Toggle per cell */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setCellEnhanceMode(prev => prev === null ? !globalEnhanceMode : !prev); }}
+            title={isEnhanced ? `AI Low-Light & Edge Enhanced [${effectiveFilter.toUpperCase()}] (Click to bypass)` : "Enhancement bypassed (Click to activate)"}
+            style={{
+              padding: '2px 5px', fontSize: 9, fontWeight: 800, borderRadius: 3,
+              background: isEnhanced ? 'rgba(16,185,129,0.22)' : '#18181b',
+              border: `1px solid ${isEnhanced ? '#10b981' : 'rgba(255,255,255,0.1)'}`,
+              color: isEnhanced ? '#34d399' : '#71717a',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3
+            }}
+          >
+            <Sparkles size={isCompact ? 9 : 11} />
+            {!isCompact && (isEnhanced ? 'ENHANCED' : 'OFF')}
+          </button>
+
+          {/* Enhancement Presets Menu */}
           <div style={{ position: 'relative' }}>
             <button
               onClick={(e) => { e.stopPropagation(); setShowFilterMenu(!showFilterMenu); }}
-              title="Optical Enhancement Filters"
-              style={{ background: filterMode !== 'normal' ? 'rgba(16,185,129,0.2)' : '#18181b', border: `1px solid ${filterMode !== 'normal' ? '#10b981' : 'rgba(255,255,255,0.1)'}`, borderRadius: 3, color: filterMode !== 'normal' ? '#34d399' : '#a1a1aa', width: isCompact ? 18 : 22, height: isCompact ? 18 : 22, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              title="Enhancement Mode Preset"
+              style={{ 
+                background: isEnhanced && effectiveFilter !== 'normal' ? 'rgba(56,189,248,0.2)' : '#18181b', 
+                border: `1px solid ${isEnhanced && effectiveFilter !== 'normal' ? '#38bdf8' : 'rgba(255,255,255,0.1)'}`, 
+                borderRadius: 3, 
+                color: isEnhanced && effectiveFilter !== 'normal' ? '#38bdf8' : '#a1a1aa', 
+                width: isCompact ? 18 : 22, height: isCompact ? 18 : 22, 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' 
+              }}
             >
-              <Sparkles size={isCompact ? 9 : 11} />
+              <Sliders size={isCompact ? 9 : 11} />
             </button>
 
             {showFilterMenu && (
               <div style={{
-                position: 'absolute', top: '100%', right: 0, marginTop: 4, width: 140,
+                position: 'absolute', top: '100%', right: 0, marginTop: 4, width: 175,
                 background: '#121215', border: '1px solid rgba(255,255,255,0.18)', borderRadius: 6,
                 boxShadow: '0 10px 30px rgba(0,0,0,0.95)', zIndex: 100, padding: 4
               }} onClick={e => e.stopPropagation()}>
                 {[
-                  { id: 'normal', label: 'Standard Normal' },
+                  { id: 'auto', label: '✨ AI HDR Auto (CLAHE)' },
                   { id: 'night', label: '🌙 Night-Vision Boost' },
-                  { id: 'sharpen', label: '🔍 High-Contrast' },
-                  { id: 'thermal', label: '🔥 Thermal Invert' }
+                  { id: 'sharpen', label: '🔍 Edge Sharpen' },
+                  { id: 'thermal', label: '🔥 Tactical Thermal FLIR' },
+                  { id: 'normal', label: '⛔ Normal (Raw Only)' }
                 ].map(f => (
                   <div
                     key={f.id}
-                    onClick={() => { setFilterMode(f.id); setShowFilterMenu(false); }}
+                    onClick={() => { 
+                      setFilterMode(f.id); 
+                      if (f.id === 'normal') {
+                        setCellEnhanceMode(false);
+                      } else {
+                        setCellEnhanceMode(true);
+                      }
+                      setShowFilterMenu(false); 
+                    }}
                     style={{
-                      padding: '4px 8px', fontSize: 10, cursor: 'pointer', borderRadius: 3,
-                      background: filterMode === f.id ? 'rgba(59,130,246,0.2)' : 'transparent',
-                      color: filterMode === f.id ? '#60a5fa' : '#f4f4f5',
-                      fontWeight: filterMode === f.id ? 700 : 500
+                      padding: '5px 8px', fontSize: 10, cursor: 'pointer', borderRadius: 3,
+                      background: (effectiveFilter === f.id || (!isEnhanced && f.id === 'normal')) ? 'rgba(56,189,248,0.2)' : 'transparent',
+                      color: (effectiveFilter === f.id || (!isEnhanced && f.id === 'normal')) ? '#38bdf8' : '#f4f4f5',
+                      fontWeight: (effectiveFilter === f.id || (!isEnhanced && f.id === 'normal')) ? 700 : 500
                     }}
                   >
                     {f.label}
@@ -337,31 +378,52 @@ function VideoWallCell({
           {streamSource === 'cloud' ? (
             <img 
               key={`cloud-img-${cam.id}-${camNum}-${reloadKey}`}
-              src={`http://localhost:8000/api/camera_snapshot/cam${String(camNum).padStart(2, '0')}?t=${reloadKey}`}
+              src={`${streamHost}/api/camera_snapshot/cam${String(camNum).padStart(2, '0')}?t=${reloadKey}`}
               alt={`${cam.name} Live Gujarat CCTV`}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               onError={(e) => {
-                e.target.src = `http://localhost:8000/api/real_speed_stream?camera_id=${camNum}&t=${reloadKey}`;
+                e.target.src = `${streamHost}/api/real_speed_stream?camera_id=${camNum}&t=${reloadKey}`;
               }}
             />
           ) : streamSource === 'webcam' ? (
             <img 
               key={`webcam-${reloadKey}`}
-              src={`http://localhost:8000/api/real_speed_stream?camera_id=webcam&t=${reloadKey}`}
+              src={`${streamHost}/api/real_speed_stream?camera_id=webcam&enhance=${isEnhanced ? 1 : 0}&filter=${effectiveFilter}&t=${reloadKey}`}
               alt="Live Field Camera"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
             />
           ) : streamSource === 'rtsp' ? (
             <img 
               key={`rtsp-${reloadKey}`}
-              src={`http://localhost:8000/api/real_speed_stream?camera_id=${encodeURIComponent(customRtspUrl)}&t=${reloadKey}`}
+              src={`${streamHost}/api/real_speed_stream?camera_id=${encodeURIComponent(customRtspUrl)}&enhance=${isEnhanced ? 1 : 0}&filter=${effectiveFilter}&t=${reloadKey}`}
               alt="Live IP Camera"
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
+          ) : streamSource === 'live_rtsp' ? (
+            <img 
+              key={`live-rtsp-${cam.id}-${camNum}-${reloadKey}-${isAiActive}`}
+              src={isAiActive 
+                ? `${streamHost}/api/real_speed_stream?camera_id=${camNum}&enhance=${isEnhanced ? 1 : 0}&filter=${effectiveFilter}&t=${reloadKey}`
+                : `${streamHost}/api/live_feed/${camNum}?enhance=${isEnhanced ? 1 : 0}&filter=${effectiveFilter}&t=${reloadKey}`
+              }
+              alt={`${cam.name} Official Live RTSP`}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              onError={(e) => {
+                setTimeout(() => {
+                  if (e.target) {
+                    const baseUrl = isAiActive 
+                      ? `${streamHost}/api/real_speed_stream?camera_id=${camNum}&enhance=${isEnhanced ? 1 : 0}&filter=${effectiveFilter}`
+                      : `${streamHost}/api/live_feed/${camNum}?enhance=${isEnhanced ? 1 : 0}&filter=${effectiveFilter}`;
+                    const sep = baseUrl.includes('?') ? '&' : '?';
+                    e.target.src = `${baseUrl}${sep}t=${Date.now()}`;
+                  }
+                }, 2000);
+              }}
             />
           ) : isAiActive ? (
             <img 
               key={`ai-stream-${cam.id}-${camNum}-${reloadKey}`}
-              src={`http://localhost:8000/api/real_speed_stream?camera_id=${camNum}&t=${reloadKey}`}
+              src={`${streamHost}/api/real_speed_stream?camera_id=${camNum}&enhance=${isEnhanced ? 1 : 0}&filter=${effectiveFilter}&t=${reloadKey}`}
               alt={`${cam.name} AI Neural Stream`}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
               onError={(e) => {
@@ -371,11 +433,16 @@ function VideoWallCell({
           ) : (
             <video 
               key={`video-${cam.id}-${camNum}-${reloadKey}`}
-              src={`http://localhost:8000/api/video_stream/${camNum}`}
+              src={`${streamHost}/api/video_stream/${camNum}`}
               autoPlay
               loop
               muted
               playsInline
+              preload="auto"
+              onLoadedMetadata={(e) => {
+                e.target.muted = true;
+                e.target.play().catch(() => {});
+              }}
               style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
             />
           )}
@@ -436,14 +503,16 @@ export function VideoWallPage({ cameras }) {
 
   const [activePreset, setActivePreset] = useState('all_auto');
   const [gridSize, setGridSize] = useState('1+5'); // '1+5', '2x2', '3x3', '4x4', '1x1'
-  const [streamSource, setStreamSource] = useState('local'); // 'local', 'cloud', 'webcam', 'rtsp'
+  const [streamSource, setStreamSource] = useState('live_rtsp'); // 'live_rtsp', 'local', 'webcam', 'rtsp'
   const [customRtspUrl, setCustomRtspUrl] = useState('rtsp://');
   const [isRtspModalOpen, setIsRtspModalOpen] = useState(false);
   const [gridSlots, setGridSlots] = useState([]);
   const [focusedCameraId, setFocusedCameraId] = useState(null);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [modalSearch, setModalSearch] = useState('');
-  const [globalAiMode, setGlobalAiMode] = useState(false); // Default to clean distinct video feeds
+  const [globalAiMode, setGlobalAiMode] = useState(true); // Default to active AI tactical detections on all feeds
+  const [globalEnhanceMode, setGlobalEnhanceMode] = useState(true); // Default to active AI Video Enhancement
+  const [globalFilterPreset, setGlobalFilterPreset] = useState('auto'); // 'auto', 'night', 'sharpen', 'thermal'
   const [isAutoPatrol, setIsAutoPatrol] = useState(false);
   const [patrolProgress, setPatrolProgress] = useState(0);
   const patrolTimerRef = useRef(null);
@@ -611,7 +680,7 @@ export function VideoWallPage({ cameras }) {
 
         {/* Stream Source Mode Selector */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 11, color: '#a855f7', fontWeight: 800 }}>MODEL 2 SOURCE:</span>
+          <span style={{ fontSize: 11, color: streamSource === 'live_rtsp' ? '#ef4444' : '#a855f7', fontWeight: 800 }}>SOURCE:</span>
           <select 
             value={streamSource} 
             onChange={e => {
@@ -623,18 +692,19 @@ export function VideoWallPage({ cameras }) {
             style={{ 
               padding: '5px 10px', 
               background: '#18181b', 
-              border: '1px solid rgba(168,85,247,0.4)', 
+              border: `1px solid ${streamSource === 'live_rtsp' ? '#ef4444' : 'rgba(168,85,247,0.4)'}`, 
               borderRadius: 6, 
-              color: streamSource === 'webcam' ? '#34d399' : '#f4f4f5', 
+              color: streamSource === 'live_rtsp' ? '#f87171' : streamSource === 'webcam' ? '#34d399' : '#f4f4f5', 
               fontSize: 11, 
               fontWeight: 700, 
               outline: 'none', 
               cursor: 'pointer' 
             }}
           >
-            <option value="local">🏛️ All 26 Gujarat Depts (Home, RTO, Civil Supplies, GSRTC)</option>
+            <option value="live_rtsp">🔴 LIVE RTSP (Official 103.250.160.189:8554)</option>
+            <option value="local">📁 Offline Gujarat HD Archive (Backup Recordings)</option>
             <option value="webcam">🎥 Live Physical Camera (Device 0 / FaceTime / USB)</option>
-            <option value="rtsp">🔗 Custom Live RTSP Ingestion (Direct TCP / Zero VMS Disruption)</option>
+            <option value="rtsp">🔗 Custom RTSP URL Ingestion</option>
           </select>
         </div>
 
@@ -683,6 +753,57 @@ export function VideoWallPage({ cameras }) {
           >
             <Cpu size={13} /> {globalAiMode ? 'AI Analytics: ALL' : 'Raw CCTV: ALL'}
           </button>
+
+          {/* Global AI Video Enhancement Toggle */}
+          <button 
+            onClick={() => setGlobalEnhanceMode(!globalEnhanceMode)}
+            title={globalEnhanceMode ? "AI Video Enhancement Active (Zero-DCE Low-Light & Edge Sharpen)" : "Enhancement Bypassed (Raw Sensor Input)"}
+            style={{
+              padding: '4px 10px',
+              fontSize: 11,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: globalEnhanceMode 
+                ? 'linear-gradient(135deg, rgba(16,185,129,0.22), rgba(56,189,248,0.22))' 
+                : '#18181b',
+              border: `1px solid ${globalEnhanceMode ? '#10b981' : 'rgba(255,255,255,0.12)'}`,
+              color: globalEnhanceMode ? '#34d399' : '#a1a1aa',
+              borderRadius: 6,
+              cursor: 'pointer',
+              boxShadow: globalEnhanceMode ? '0 0 10px rgba(16,185,129,0.22)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <Sparkles size={13} style={{ color: globalEnhanceMode ? '#34d399' : '#71717a' }} />
+            {globalEnhanceMode ? '✨ AI Enhanced: ON' : 'AI Enhanced: OFF'}
+          </button>
+
+          {/* Global Enhancement Preset Selector */}
+          {globalEnhanceMode && (
+            <select
+              value={globalFilterPreset}
+              onChange={e => setGlobalFilterPreset(e.target.value)}
+              style={{
+                padding: '4px 8px',
+                background: '#18181b',
+                border: '1px solid rgba(16,185,129,0.4)',
+                borderRadius: 6,
+                color: '#34d399',
+                fontSize: 11,
+                fontWeight: 700,
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+              title="Global Video Enhancement Algorithm"
+            >
+              <option value="auto">✨ AI HDR Auto (CLAHE + Gamma)</option>
+              <option value="night">🌙 Night-Vision Boost (Zero-DCE)</option>
+              <option value="sharpen">🔍 Edge Sharpen (Unsharp Mask)</option>
+              <option value="thermal">🔥 Tactical Thermal FLIR</option>
+            </select>
+          )}
 
           {/* Auto Patrol / Tour Button */}
           <button 
@@ -772,6 +893,8 @@ export function VideoWallPage({ cameras }) {
             onToggleFocus={() => setFocusedCameraId(focusedCameraId === cam.id ? null : cam.id)}
             gridSize={focusedCameraId ? '1x1' : gridSize}
             globalAiMode={globalAiMode}
+            globalEnhanceMode={globalEnhanceMode}
+            globalFilterPreset={globalFilterPreset}
             onPromoteToMaster={handlePromoteToMaster}
             isMasterSlot={gridSize === '1+5' && idx === 0}
             streamSource={streamSource}
