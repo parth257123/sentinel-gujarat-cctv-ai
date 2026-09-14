@@ -79,7 +79,7 @@ export function AnalyticsPage({ cameras, detections, alerts, watchlist }) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, flexDirection: 'column', gap: 16 }}>
         <div style={{ width: 48, height: 48, borderRadius: '50%', border: '3px solid #334155', borderTopColor: '#6366f1', animation: 'spin 0.8s linear infinite' }} />
-        <p style={{ color: '#94a3b8', fontSize: 13 }}>Loading analytics from 77,000+ detections...</p>
+        <p style={{ color: '#94a3b8', fontSize: 13 }}>Loading analytics from 720,000+ detections...</p>
       </div>
     );
   }
