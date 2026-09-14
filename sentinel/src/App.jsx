@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Map, Video, Search, Shield, Bell, BarChart3, Settings, Camera, Cpu, Radio, Target, FileText, AlertOctagon, ChevronLeft, ChevronRight, Menu, Database, Sparkles, Siren, Fingerprint, Route, Tag, Wand2, Building2, Navigation } from 'lucide-react'
+import { Map, Video, Search, Shield, Bell, BarChart3, Settings, Camera, Cpu, Radio, Target, FileText, AlertOctagon, ChevronLeft, ChevronRight, Menu, Database, Sparkles, Siren, Fingerprint, Route, Tag, Wand2, Building2, Navigation, Activity } from 'lucide-react'
 import { CameraMonitoringPage } from './pages/CameraMonitoringPage'
 import { VideoWallPage } from './pages/VideoWallPage'
 import { VideoEnhancementStudioPage } from './pages/VideoEnhancementStudioPage'
@@ -21,10 +21,16 @@ import { generateWatchlist } from './data/sampleData'
 const API_BASE = '';
 
 export default function App() {
-  const [activePage, setActivePage] = useState('annotation');
+  const [activePage, setActivePage] = useState(() => {
+    return localStorage.getItem('sentinel_active_page') || 'videowall';
+  });
   const [selectedCamera, setSelectedCamera] = useState(null);
   const [activeInterceptModal, setActiveInterceptModal] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('sentinel_active_page', activePage);
+  }, [activePage]);
 
   // ─── Camera State (from backend) ──────────────────────────────────
   const [cameras, setCameras] = useState([]);
@@ -174,26 +180,26 @@ export default function App() {
   const onlineCameras = cameras.filter(c => c.status === 'online').length;
 
   const navItems = [
-    { id: 'map', label: 'Camera Health & Monitoring', icon: Map },
-    { id: 'videowall', label: 'Video Wall', icon: Video },
+    { id: 'videowall', label: 'Unified Video Wall', icon: Video, badge: 'LIVE' },
+    { id: 'map', label: 'Camera Health & Diagnostics', icon: Activity, badge: '30 Nodes' },
     { id: 'enhancement', label: 'Video Enhancement Studio', icon: Wand2, badge: '5-AI' },
     { id: 'search', label: 'Vehicle Search & Tracking', icon: Search },
-    { id: 'violations', label: 'Traffic Violations', icon: AlertOctagon },
+    { id: 'violations', label: 'Traffic Violations & e-Challan', icon: AlertOctagon },
     { id: 'trajectory', label: '3D Trajectory & Intercept', icon: Route },
     { id: 'routemap', label: 'Route Reconstruction & Stolen Vehicle', icon: Navigation, badge: 'NEW' },
     { id: 'investigator', label: 'Operation Netram Copilot', icon: Sparkles, badge: 'AI' },
     { id: 'watchlist', label: 'Watchlist & Lookouts', icon: Shield },
     { id: 'alerts', label: 'Intercept Alerts', icon: Bell, badge: unreadAlerts || null },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'analytics', label: 'Analytics & Traffic Insights', icon: BarChart3 },
     { id: 'forensics', label: 'Section 65B Dossier', icon: FileText },
-    { id: 'archive', label: 'Forensic Archive', icon: Database },
-    { id: 'annotation', label: 'Annotation Studio', icon: Tag, badge: 'AI' },
-    { id: 'registry', label: 'Statewide CCTV Registry & GIS', icon: Building2, badge: 'NEW' },
+    { id: 'archive', label: 'Forensic Surveillance Archive', icon: Database },
+    { id: 'registry', label: 'Statewide Asset Registry & Gap Analysis', icon: Building2, badge: '170 Nodes' },
+    { id: 'annotation', label: 'Dataset Annotation Studio', icon: Tag, badge: 'AI' },
   ];
 
   const pageLabels = {
-    map: 'Camera Health Monitoring & GIS Infrastructure',
-    videowall: 'Unified Video Wall',
+    videowall: 'Unified Video Wall — Live Statewide Grid Feeds',
+    map: 'Camera Health & Hardware Diagnostics (30 Live Junctions)',
     enhancement: 'Optical & Deep Learning Video Enhancement Suite (Real-ESRGAN, Zero-DCE, FastDVDNet, NAFNet, H.264)',
     search: 'Vehicle Search & Cross-Camera Tracking',
     violations: 'Traffic Violations & e-Challan Enforcement',
@@ -206,7 +212,7 @@ export default function App() {
     annotation: 'Gujarat Police CCTV Dataset Annotation Studio (YOLOv8/v12 Active Learning)',
     forensics: 'Section 65B BSA 2023 Electronic Evidence Dossier',
     archive: 'Statewide Forensic Surveillance Evidence Archive',
-    registry: 'Statewide Centralised CCTV Asset Registry & GIS Mapping Platform',
+    registry: 'Statewide Centralised CCTV Asset Registry & Coverage Gap Analysis (170 Nodes)',
   };
 
   return (
@@ -243,7 +249,7 @@ export default function App() {
         </div>
 
         <nav className="sidebar-nav">
-          <div className="nav-section-label">Monitoring &amp; Enforcement</div>
+          <div className="nav-section-label">Monitoring &amp; Real-Time Ops</div>
           {navItems.slice(0, 5).map(item => (
             <a 
               key={item.id} 
